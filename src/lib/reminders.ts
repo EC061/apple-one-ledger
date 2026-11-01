@@ -147,6 +147,7 @@ export async function sendAdminDigest(day: string): Promise<boolean> {
     .prepare("SELECT COALESCE(SUM(amount_usd),0) AS total FROM invoices WHERE status = 'paid'")
     .get() as { total: number };
   const outstanding = open.reduce((sum, row) => sum + row.amount_usd, 0);
+  const removals = removalCandidates(day);
 
   const result = await sendDigestEmail({
     admin,
@@ -158,6 +159,11 @@ export async function sendAdminDigest(day: string): Promise<boolean> {
       amount: row.amount_usd,
       due: row.due_date,
       invoiceId: row.id,
+    })),
+    removals: removals.map((row) => ({
+      name: row.user_name,
+      email: row.user_email,
+      due: row.due_date,
     })),
     collected: Number(collectedRow.total),
     outstanding,
