@@ -164,6 +164,10 @@ function esc(value: string): string {
   });
 }
 
+function gb(value: number): string {
+  return `${value.toFixed(value >= 100 ? 0 : 1)} GB`;
+}
+
 function p(text: string) {
   return `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#25352e;">${text}</p>`;
 }
@@ -214,6 +218,7 @@ export async function sendReminderEmail(input: {
   invoice: Invoice;
   baseUrl: string;
   kind: "reminder" | "overdue";
+  dedupeKey?: string;
 }) {
   const { user, invoice, baseUrl } = input;
   const overdue = input.kind === "overdue";
@@ -255,40 +260,11 @@ export async function sendReminderEmail(input: {
     text,
     html: layout(overdue ? "Payment overdue" : "Payment reminder", body, "You can update your contact details from the dashboard."),
     kind: input.kind,
-    dedupeKey: `${input.kind}:${invoice.id}:${today(getSettings().plan.timezone)}`,
+    dedupeKey:
+      input.dedupeKey ?? `${input.kind}:${invoice.id}:${today(getSettings().plan.timezone)}`,
   });
 }
 
-export async function sendRemovalWarningEmail(input: { user: User; invoice: Invoice; baseUrl: string }) {
-  const { user, invoice, baseUrl } = input;
-  const subject = `Action needed: your family plan seat is at risk`;
-  const text = [
-    `Hi ${user.name},`,
-    ``,
-    `Your payment of ${formatMoney(invoice.amount_usd)} for ${formatDate(invoice.period_start)} – ${formatDate(invoice.period_end)} is still outstanding.`,
-    `If it is not settled, your seat will be removed from the plan.`,
-    ``,
-    `${baseUrl}/dashboard/pay/${invoice.id}`,
-  ].join("\n");
-
-  return sendMail({
-    to: user.email,
-    subject,
-    text,
-    html: layout(
-      "Your seat is at risk",
-      p(`Hi ${esc(user.name)},`) +
-        p(
-          `Your payment of <strong>${formatMoney(invoice.amount_usd)}</strong> for <strong>${formatDate(invoice.period_start)} – ${formatDate(invoice.period_end)}</strong> is still outstanding.`,
-        ) +
-        p("If it is not settled soon, an admin will remove your seat from the plan.") +
-        button(`${baseUrl}/dashboard/pay/${invoice.id}`, "Settle payment"),
-      "This is an automated notice from the family plan admin.",
-    ),
-    kind: "removal-warning",
-    dedupeKey: `removal:${invoice.id}:${today(getSettings().plan.timezone)}`,
-  });
-}
 
 export async function sendReceiptEmail(input: { user: User; invoice: Invoice; baseUrl: string }) {
   const { user, invoice, baseUrl } = input;
@@ -322,89 +298,6 @@ export async function sendReceiptEmail(input: { user: User; invoice: Invoice; ba
   });
 }
 
-export async function sendDigestEmail(input: {
-  admin: User;
-  baseUrl: string;
-  rows: { name: string; email: string; status: string; amount: number; due: string; invoiceId: string }[];
-  removals: { name: string; email: string; due: string }[];
-  collected: number;
-  outstanding: number;
-  seatsUsed: number;
-  seats: number;
-}) {
-  const subject = `Daily family plan digest — ${input.rows.length} open payment(s)`;
-  const text = [
-    `Open payments: ${input.rows.length}`,
-    `Outstanding: ${formatMoney(input.outstanding)}`,
-    `Collected (all time): ${formatMoney(input.collected)}`,
-    `Seats: ${input.seatsUsed}/${input.seats}`,
-    ``,
-    ...input.rows.map(
-      (r) => `${r.name} <${r.email}> — ${r.status} — ${formatMoney(r.amount)} — due ${r.due}`,
-    ),
-    ...(input.removals.length
-      ? ["", "Past grace — remove or contact:", ...input.removals.map((r) => `${r.name} <${r.email}> — due ${r.due}`)]
-      : []),
-    ``,
-    `${input.baseUrl}/admin`,
-  ].join("\n");
-
-  const html = layout(
-    "Daily digest",
-    p(`<strong>${input.rows.length}</strong> member(s) have an open payment.`) +
-      details([
-        ["Outstanding", formatMoney(input.outstanding)],
-        ["Collected all time", formatMoney(input.collected)],
-        ["Seats", `${input.seatsUsed} / ${input.seats}`],
-      ]) +
-      (input.rows.length
-        ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:13px;border-collapse:collapse;">
-            <tr style="text-align:left;color:#6b7c74;">
-              <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;">Member</th>
-              <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;">Status</th>
-              <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;text-align:right;">Amount</th>
-              <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;text-align:right;">Due</th>
-            </tr>
-            ${input.rows
-              .map(
-                (r) =>
-                  `<tr><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;">${esc(r.name)}<br><span style="color:#6b7c74;font-size:12px;">${esc(r.email)}</span></td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;">${r.status}</td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;text-align:right;">${formatMoney(r.amount)}</td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;text-align:right;">${formatDate(r.due)}</td></tr>`,
-              )
-              .join("")}
-          </table>`
-        : p("Everyone is paid up.")) +
-      (input.removals.length
-        ? `<h2 style="margin:22px 0 8px;font-size:16px;">Past grace — remove or contact</h2>
-           <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:13px;border-collapse:collapse;">
-             <tr style="text-align:left;color:#6b7c74;">
-               <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;">Member</th>
-               <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;text-align:right;">Due</th>
-             </tr>
-             ${input.removals
-               .map(
-                 (r) =>
-                   `<tr><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;">${esc(r.name)}<br><span style="color:#6b7c74;font-size:12px;">${esc(r.email)}</span></td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;text-align:right;color:#b42318;">${formatDate(r.due)}</td></tr>`,
-               )
-               .join("")}
-           </table>`
-        : "") +
-      button(`${input.baseUrl}/admin`, "Open admin"),
-    "Manage reminder settings in Admin → Settings.",
-  );
-
-  return sendMail({
-    to: input.admin.email,
-    subject,
-    text,
-    html,
-    kind: "digest",
-    dedupeKey: `digest:${today(getSettings().plan.timezone)}`,
-  });
-}
-
-function gb(value: number): string {
-  return `${value.toFixed(value >= 100 ? 0 : 1)} GB`;
-}
 
 export async function sendStorageAlertEmail(input: {
   user: User;
@@ -527,40 +420,66 @@ export async function sendRenewalNoticeEmail(input: {
   return sendMail({ to: user.email, subject, text, html, kind: "renewal-notice", dedupeKey: input.dedupeKey });
 }
 
-export async function sendRenewalAdminEmail(input: {
+
+
+export async function sendAdminAdvanceEmail(input: {
   admin: User;
-  rows: { name: string; email: string; paidThrough: string }[];
+  invoices: { name: string; email: string; amount: number; due: string; reference: string }[];
+  renewals: { name: string; email: string; paidThrough: string }[];
   days: number;
   baseUrl: string;
   day: string;
 }) {
-  const { admin, rows, days, baseUrl, day } = input;
-  const subject = `Renewal in ${days} days: ${rows.length} member${rows.length === 1 ? "" : "s"}`;
+  const { admin, invoices, renewals, days, baseUrl } = input;
+  const total = invoices.length + renewals.length;
+  const subject = `Upcoming in ${days} days: ${total} item${total === 1 ? "" : "s"}`;
   const text = [
-    `Coverage ends in ${days} days for:`,
+    `Due or expiring within ${days} days:`,
     "",
-    ...rows.map((row) => `${row.name} <${row.email}> — until ${formatDate(row.paidThrough)}`),
+    ...invoices.map((row) => `Invoice ${row.reference}: ${row.name} <${row.email}> — ${formatMoney(row.amount)} due ${row.due}`),
+    ...renewals.map((row) => `Renewal: ${row.name} <${row.email}> — coverage ends ${row.paidThrough}`),
     "",
-    `${baseUrl}/admin/pool`,
+    `${baseUrl}/admin/invoices`,
   ].join("\n");
 
-  const html = layout(
-    `Renewal in ${days} days`,
-    p(`${rows.length} member(s) reach the end of their paid coverage in ${days} days.`) +
-      `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:13px;border-collapse:collapse;">
+  const invoiceTable = invoices.length
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:13px;border-collapse:collapse;margin-bottom:14px;">
         <tr style="text-align:left;color:#6b7c74;">
-          <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;">Member</th>
-          <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;text-align:right;">Covered until</th>
+          <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;">Invoice</th>
+          <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;text-align:right;">Amount</th>
+          <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;text-align:right;">Due</th>
         </tr>
-        ${rows
+        ${invoices
+          .map(
+            (row) =>
+              `<tr><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;">${esc(row.name)}<br><span style="color:#6b7c74;font-size:12px;">${esc(row.email)} · ${row.reference}</span></td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;text-align:right;">${formatMoney(row.amount)}</td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;text-align:right;">${formatDate(row.due)}</td></tr>`,
+          )
+          .join("")}
+      </table>`
+    : "";
+
+  const renewalTable = renewals.length
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:13px;border-collapse:collapse;">
+        <tr style="text-align:left;color:#6b7c74;">
+          <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;">Renewal</th>
+          <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;text-align:right;">Coverage ends</th>
+        </tr>
+        ${renewals
           .map(
             (row) =>
               `<tr><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;">${esc(row.name)}<br><span style="color:#6b7c74;font-size:12px;">${esc(row.email)}</span></td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;text-align:right;">${formatDate(row.paidThrough)}</td></tr>`,
           )
           .join("")}
-      </table>` +
-      button(`${baseUrl}/admin/pool`, "Open the active pool"),
-    "Sent once per day while the renewal window is open.",
+      </table>`
+    : "";
+
+  const html = layout(
+    `Upcoming in ${days} days`,
+    p(`The following payments or renewals are due within <strong>${days} days</strong>.`) +
+      invoiceTable +
+      renewalTable +
+      button(`${baseUrl}/admin/invoices`, "Open invoices"),
+    "One reminder per day when there is something in the advance window.",
   );
 
   return sendMail({
@@ -568,51 +487,49 @@ export async function sendRenewalAdminEmail(input: {
     subject,
     text,
     html,
-    kind: "renewal-admin",
-    dedupeKey: `renewal-admin:${day}`,
+    kind: "admin-advance",
+    dedupeKey: `advance-admin:${input.day}`,
   });
 }
 
-export async function sendInvoiceCreatedEmail(input: {
-  user: User;
+export async function sendLateKickEmail(input: {
+  admin: User;
+  member: { name: string; email: string };
   invoice: Invoice;
+  days: number;
   baseUrl: string;
+  day: string;
 }) {
-  const { user, invoice, baseUrl } = input;
-  const subject = `New invoice: ${formatMoney(invoice.amount_usd)} due ${formatDate(invoice.due_date)}`;
-  const url = `${baseUrl}/dashboard/pay/${invoice.id}`;
+  const { admin, member, invoice, days, baseUrl } = input;
+  const subject = `${member.name} is ${days} day${days === 1 ? "" : "s"} late — remove the seat?`;
   const text = [
-    `Hi ${user.name},`,
+    `${member.name} <${member.email}> is past due.`,
+    `Invoice ${invoice.reference}: ${formatMoney(invoice.amount_usd)} due ${invoice.due_date}`,
+    `Term ${invoice.period_start} – ${invoice.period_end}`,
     "",
-    `A new invoice is ready for the term ${formatDate(invoice.period_start)} – ${formatDate(invoice.period_end)}.`,
-    `Amount: ${formatMoney(invoice.amount_usd)} (¥${invoice.amount_cny.toFixed(2)})`,
-    `Due: ${formatDate(invoice.due_date)}`,
-    `Reference: ${invoice.reference}`,
-    "",
-    url,
+    `Remove or contact: ${baseUrl}/admin/members`,
   ].join("\n");
 
   const html = layout(
-    "New invoice",
-    p(`Hi ${esc(user.name)},`) +
-      p("A new invoice is ready. Pay it in USD or CNY and include the reference in the note.") +
+    "Seat past due — remove?",
+    p(`<strong>${esc(member.name)}</strong> is ${days} day${days === 1 ? "" : "s"} past the due date.`) +
       details([
         ["Amount", formatMoney(invoice.amount_usd)],
-        ["In CNY", `¥${invoice.amount_cny.toFixed(2)}`],
-        ["Term", `${formatDate(invoice.period_start)} – ${formatDate(invoice.period_end)}`],
         ["Due", formatDate(invoice.due_date)],
         ["Reference", invoice.reference],
+        ["Email", member.email],
       ]) +
-      button(url, "View and pay"),
-    "You receive this because you hold a seat on the family plan.",
+      p("Remove the seat or contact them from the members page.") +
+      button(`${baseUrl}/admin/members`, "Open members"),
+    "Sent once per invoice, one day after the due date.",
   );
 
   return sendMail({
-    to: user.email,
+    to: admin.email,
     subject,
     text,
     html,
-    kind: "invoice-created",
-    dedupeKey: `invoice-created:${invoice.id}`,
+    kind: "admin-late",
+    dedupeKey: `late-invoice:${invoice.id}`,
   });
 }

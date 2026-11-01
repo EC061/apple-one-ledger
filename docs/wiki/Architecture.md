@@ -54,7 +54,7 @@ src/instrumentation.ts     in-process scheduler (6 h)
 3. Invoice changes run inside `BEGIN IMMEDIATE` and use status predicates, so concurrent
    submit/approve/void cannot overwrite each other.
 4. The daily job runs inside the container every 6 hours (editable): overdue marking, FX,
-   reminders, renewal notices, digest, storage alerts.
+   advance notices, late admin notices, storage alerts.
 
 ## Deliberate limits
 

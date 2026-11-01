@@ -27,13 +27,12 @@ import {
   sendMail,
   sendInviteEmail,
   sendReceiptEmail,
-  sendInvoiceCreatedEmail,
   sendReceiptForInvoice,
   sendReminderEmail,
   verifySmtp,
   smtpConfigured,
 } from "@/lib/email";
-import { runDailyJobs, sendAdminDigest } from "@/lib/reminders";
+import { runDailyJobs } from "@/lib/reminders";
 import { updateStorage } from "@/lib/storage";
 import { getBaseUrl } from "@/lib/url";
 import { addDays, today } from "@/lib/dates";
@@ -157,17 +156,10 @@ export async function saveSettingsAction(formData: FormData) {
   }
 
   if (intent === "reminders") {
-    const days = text(formData, "daysBefore")
-      .split(/[,\s]+/)
-      .map((value) => Math.round(Number(value)))
-      .filter((value) => Number.isFinite(value) && value >= 0 && value <= 60);
     saveSection("reminders", {
       enabled: flag(formData, "enabled"),
-      daysBefore: days.length ? Array.from(new Set(days)).sort((a, b) => b - a) : current.reminders.daysBefore,
-      overdueEveryDays: Math.round(clamp(number(formData, "overdueEveryDays", 3), 1, 30)),
-      adminDigest: flag(formData, "adminDigest"),
-      removalWarningDays: Math.round(clamp(number(formData, "removalWarningDays", 1), 1, 60)),
-      renewalNoticeDays: Math.round(clamp(number(formData, "renewalNoticeDays", 7), 1, 60)),
+      advanceDays: Math.round(clamp(number(formData, "advanceDays", current.reminders.advanceDays), 1, 60)),
+      lateDays: Math.round(clamp(number(formData, "lateDays", current.reminders.lateDays), 1, 60)),
     });
   }
 
@@ -443,12 +435,6 @@ export async function adminCreateInvoiceAction(formData: FormData) {
 
   event(null, "invoice.admin_created", { invoiceId: id });
 
-  const created = db().prepare("SELECT * FROM invoices WHERE id = ?").get(id) as unknown as Invoice;
-  const member = db().prepare("SELECT * FROM users WHERE id = ?").get(userId) as unknown as User;
-  if (member) {
-    await sendInvoiceCreatedEmail({ user: member, invoice: created, baseUrl: await getBaseUrl() }).catch(() => undefined);
-  }
-
   refreshAll();
   redirect(`/admin/invoices?created=${id}`);
 }
@@ -530,14 +516,7 @@ export async function runJobsAction() {
   const result = await runDailyJobs();
   event(null, "jobs.manual", result);
   refreshAll();
-  redirect(`/admin?ran=${result.remindersSent}&digest=${result.digestSent ? 1 : 0}`);
-}
-
-export async function sendDigestNowAction() {
-  await requireAdmin();
-  const sent = await sendAdminDigest(today(getSettings().plan.timezone));
-  event(null, "digest.manual", { sent });
-  redirect(`/admin?saved=${sent ? "digest" : "digest-skipped"}`);
+  redirect(`/admin?ran=${result.advanceSent}&late=${result.lateSent}`);
 }
 
 /* ------------------------------------------------------------------ */

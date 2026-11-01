@@ -19,8 +19,7 @@ Everything else is stored in SQLite and editable at **Admin → Settings**:
 - **Payment details** — WeChat / Alipay IDs and QR URLs, Venmo handle, Zelle email, instructions.
 - **SMTP** — host, port, TLS, user, password, from; test send.
 - **Exchange rate** — automatic (frankfurter/ECB) or manual; refresh now.
-- **Reminders** — 7 days before due, overdue cadence, removal cadence, renewal notice window,
-  admin digest.
+- **Reminders** — the single advance notice (7 days) and the single late admin notice (1 day).
 - **Storage** — pool size, sharing count, warn threshold, stale age, member/admin alerts.
 - **Application** — session lifetime, scheduler interval, payment tolerance.
 
@@ -39,4 +38,4 @@ Everything else is stored in SQLite and editable at **Admin → Settings**:
   **Members → Set password** (that also signs them out everywhere). The admin can recover their
   own account by using `ADMIN_REG_CODE` with the same email on `/signup`.
 - Removing a seat revokes sessions, voids open invoices and frees the seat; history stays.
-- Timezone affects "today", due dates, reminders and digests.
+- Timezone affects "today", due dates and reminder windows.

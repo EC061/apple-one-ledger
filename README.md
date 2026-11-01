@@ -9,7 +9,7 @@ Six seats, quarterly/half-year/annual terms, USD or CNY, email reminders and a s
 - **Terms**: quarterly / half-year / annual; first term $45 / $90 / $180, renewals $51 / $96 / $180.
 - **Cost basis**: $89.94 per month ÷ 6 = **$14.99 per seat**.
 - **Payments**: WeChat Pay, Alipay, Venmo, Zelle; member reports, admin approves; CNY locks the daily USD→CNY rate.
-- **Notifications**: reminders, overdue/removal warnings, receipts, renewal notices 7 days ahead (member + admin).
+- **Notifications**: one 7-day advance notice (member + admin) and one 1-day-late admin notice per invoice; receipts.
 - **Storage**: 2 TB iCloud+ split ≈333 GB per seat, with over-quota emails.
 - **Public page**: bilingual English/中文, dark by default, live pricing and services.
 - **Stack**: Next.js 16, SQLite (WAL), Docker, PWA, GHCR multi-arch image.

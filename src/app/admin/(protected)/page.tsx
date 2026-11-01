@@ -6,7 +6,7 @@ import { seatCapacity, seatsUsed } from "@/lib/auth";
 import { latestStoredRate } from "@/lib/fx";
 import { removalCandidates } from "@/lib/reminders";
 import { storageTotals } from "@/lib/storage";
-import { runJobsAction, sendDigestNowAction } from "@/app/actions/admin";
+import { runJobsAction } from "@/app/actions/admin";
 import { Notice, Stat } from "@/components/ui";
 import SubmitButton from "@/components/SubmitButton";
 import type { Invoice } from "@/lib/types";
@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminOverviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ran?: string; digest?: string; saved?: string }>;
+  searchParams: Promise<{ ran?: string; late?: string; saved?: string }>;
 }) {
   const params = await searchParams;
   const settings = getSettings();
@@ -103,12 +103,8 @@ export default async function AdminOverviewPage({
     <>
       {params.ran !== undefined ? (
         <Notice tone="ok">
-          Daily jobs finished — {params.ran} reminder(s) sent{params.digest === "1" ? ", digest delivered" : ""}.
+          Daily jobs finished — {params.ran} advance notice(s), {params.late} late notice(s).
         </Notice>
-      ) : null}
-      {params.saved === "digest" ? <Notice tone="ok">Digest sent to your email.</Notice> : null}
-      {params.saved === "digest-skipped" ? (
-        <Notice tone="warn">Digest skipped — configure SMTP in Settings first.</Notice>
       ) : null}
 
       <div className="row-between">
@@ -120,11 +116,6 @@ export default async function AdminOverviewPage({
           </p>
         </div>
         <div className="row">
-          <form action={sendDigestNowAction}>
-            <SubmitButton className="btn btn-secondary" pending="Sending…">
-              Send digest now
-            </SubmitButton>
-          </form>
           <form action={runJobsAction}>
             <SubmitButton className="btn btn-primary" pending="Running…">
               Run daily jobs

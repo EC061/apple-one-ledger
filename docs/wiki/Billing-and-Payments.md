@@ -41,9 +41,9 @@ Settings for offline deployments or to match the payment app's own spread.
 
 - **Renewal notice**: 7 days before `paid_through` (editable) the member gets an email and the
   admin gets one summary. Skipped if the member already has an open invoice.
-- **Reminders**: 7 days before the invoice due date.
-- **Grace**: 1 day by default. At one day late the seat is flagged for removal, the member gets a
-  removal warning, and the admin digest lists them under “Past grace — remove or contact”.
+- **Advance notice**: one email to the member and one admin summary 7 days before due/expiry.
+- **Late notice**: one day after the due date, the admin gets one email per invoice: remove the
+  seat or contact the member. The member is not emailed again.
 - Removal itself is always an admin action (Members → Remove seat).
 
 ## Why no automatic bank hook
