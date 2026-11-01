@@ -69,9 +69,10 @@ export async function PlanPricingCard() {
               </div>
               <div className="field">
                 <label className="label" htmlFor="dueSoonDays">
-                  Payment due after (days)
+                  Invoice due window (days after issue)
                 </label>
                 <input id="dueSoonDays" name="dueSoonDays" type="number" min={1} max={60} className="input" defaultValue={plan.dueSoonDays} />
+                <span className="hint">Due date only. Email timing is configured under Reminders.</span>
               </div>
               <div className="field">
                 <label className="label" htmlFor="monthlyTotalUsd">
