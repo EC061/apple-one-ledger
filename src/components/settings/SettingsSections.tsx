@@ -1,11 +1,9 @@
-import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { formatDateTime, formatMoney } from "@/lib/dates";
 import { perSeatMonthly } from "@/lib/pricing";
 import { latestStoredRate } from "@/lib/fx";
 import { smtpConfigured } from "@/lib/email";
-import { getBaseUrl } from "@/lib/url";
 import { db } from "@/lib/db";
 import { saveSettingsAction, testSmtpAction, refreshFxAction } from "@/app/actions/admin";
 import { updateProfileAction } from "@/app/actions/member";
@@ -165,18 +163,6 @@ export async function PaymentDetailsCard() {
                 <input id="zelleEmail" name="zelleEmail" className="input" defaultValue={payments.zelleEmail} />
               </div>
               <div className="field">
-                <label className="label" htmlFor="wechatId">
-                  WeChat ID
-                </label>
-                <input id="wechatId" name="wechatId" className="input" defaultValue={payments.wechatId} />
-              </div>
-              <div className="field">
-                <label className="label" htmlFor="alipayId">
-                  Alipay ID
-                </label>
-                <input id="alipayId" name="alipayId" className="input" defaultValue={payments.alipayId} />
-              </div>
-              <div className="field">
                 <label className="label" htmlFor="wechatQrFile">
                   Upload WeChat QR (camera or photo)
                 </label>
@@ -250,7 +236,7 @@ export async function SmtpCard() {
         <div className="card-head">
           <div>
             <h2>Email (SMTP)</h2>
-            <span className="muted small">Reminders, receipts, invitations and the daily digest.</span>
+            <span className="muted small">Reminders, receipts and invitations.</span>
           </div>
           {smtpConfigured() ? <span className="badge badge-paid">Configured</span> : <span className="badge badge-warn">Not configured</span>}
         </div>
@@ -456,124 +442,12 @@ export async function RemindersCard() {
               </div>
             </div>
             <div className="notice small">
-              That is the whole schedule: one advance notice to both sides, then one late notice to you. No
-              digest, no repeated overdue cadence.
+              That is the whole schedule: one advance notice to both sides, then one late notice to you. Nothing
+              else is sent automatically.
             </div>
             <div>
               <SubmitButton className="btn btn-primary" pending="Saving…">
                 Save reminders
-              </SubmitButton>
-            </div>
-          </form>
-        </div>
-      </div>
-    </>
-  );
-}
-
-export async function StorageCard() {
-  const { storage, plan } = getSettings();
-  const baseUrl = await getBaseUrl();
-  return (
-    <>
-      <div className="card" id="storage">
-        <div className="card-head">
-          <div>
-            <h2>Storage tracking</h2>
-            <span className="muted small">
-              {storage.totalGb} GB family pool ÷ {plan.seats} seats = {(storage.totalGb / plan.seats).toFixed(1)} GB per person
-            </span>
-          </div>
-          {storage.enabled ? <span className="badge badge-paid">On</span> : <span className="badge badge-void">Off</span>}
-        </div>
-        <div className="card-body stack">
-          <div className="notice">
-            <strong>How usage gets in.</strong> Apple does not publish an API for family member iCloud storage. The
-            organizer sees it in Settings → Family → iCloud+ (and on iCloud.com), but there is nothing to poll. So usage
-            is <em>reported</em>: enter it per member under{" "}
-            <Link href="/admin/members">Members</Link>, or POST {"{ email, usedGb }"} to{" "}
-            <span className="mono">{baseUrl}/api/storage/update</span> with your{" "}
-            <span className="mono">INGEST_TOKEN</span>. When someone exceeds their share, both they and you get an
-            email.
-          </div>
-
-          <form action={saveSettingsAction} className="stack">
-            <input type="hidden" name="intent" value="storage" />
-            <div className="form-grid">
-              <div className="field full">
-                <label className="check">
-                  <input type="checkbox" name="enabled" defaultChecked={storage.enabled} />
-                  <span>Track per-member storage and send over-quota alerts</span>
-                </label>
-              </div>
-              <div className="field">
-                <label className="label" htmlFor="totalGb">
-                  Total family pool (GB)
-                </label>
-                <input id="totalGb" name="totalGb" type="number" min={1} className="input" defaultValue={storage.totalGb} />
-                <span className="hint">Apple advertises 2 TB. Use 2000 or 2048 depending on how you count it.</span>
-              </div>
-              <div className="field">
-                <label className="label" htmlFor="shareCount">
-                  People sharing the pool
-                </label>
-                <input
-                  id="shareCount"
-                  name="shareCount"
-                  type="number"
-                  min={1}
-                  max={12}
-                  className="input"
-                  defaultValue={storage.shareCount}
-                />
-                <span className="hint">Usually 6. A billing-only admin who is not in the Apple family should not count.</span>
-              </div>
-              <div className="field">
-                <label className="label" htmlFor="maxAgeDays">
-                  Treat readings older than (days) as stale
-                </label>
-                <input
-                  id="maxAgeDays"
-                  name="maxAgeDays"
-                  type="number"
-                  min={7}
-                  max={365}
-                  className="input"
-                  defaultValue={storage.maxAgeDays}
-                />
-                <span className="hint">Stale values are shown as outdated and never trigger email.</span>
-              </div>
-              <div className="field">
-                <label className="label" htmlFor="warnPercent">
-                  Warn at % of share
-                </label>
-                <input
-                  id="warnPercent"
-                  name="warnPercent"
-                  type="number"
-                  min={50}
-                  max={100}
-                  className="input"
-                  defaultValue={storage.warnPercent}
-                />
-                <span className="hint">Visual warning only; the email fires when someone is over 100% of the fair share.</span>
-              </div>
-              <div className="field">
-                <label className="check">
-                  <input type="checkbox" name="notifyMember" defaultChecked={storage.notifyMember} />
-                  <span>Email the member when they are over</span>
-                </label>
-              </div>
-              <div className="field">
-                <label className="check">
-                  <input type="checkbox" name="notifyAdmin" defaultChecked={storage.notifyAdmin} />
-                  <span>Email me a daily summary</span>
-                </label>
-              </div>
-            </div>
-            <div>
-              <SubmitButton className="btn btn-primary" pending="Saving…">
-                Save storage settings
               </SubmitButton>
             </div>
           </form>

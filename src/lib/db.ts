@@ -48,8 +48,6 @@ CREATE TABLE IF NOT EXISTS users (
   status           TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','removed')),
   paid_through     TEXT,
   note             TEXT,
-  storage_used_gb  REAL NOT NULL DEFAULT 0,
-  storage_updated_at TEXT,
   created_at       TEXT NOT NULL,
   updated_at       TEXT NOT NULL
 );
@@ -129,16 +127,6 @@ CREATE TABLE IF NOT EXISTS settings (
   updated_at TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS storage_readings (
-  id          TEXT PRIMARY KEY,
-  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  used_gb     REAL NOT NULL,
-  source      TEXT NOT NULL,
-  actor       TEXT,
-  recorded_at TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS storage_readings_user ON storage_readings(user_id, recorded_at);
-
 CREATE TABLE IF NOT EXISTS fx_rates (
   date       TEXT PRIMARY KEY,
   rate       REAL NOT NULL,
@@ -173,8 +161,29 @@ function migrate(database: DatabaseSync) {
   // Additive upgrades for databases created by older builds.
   ensureColumn(database, "users", "password_hash", "TEXT");
   ensureColumn(database, "payments", "proof_url", "TEXT");
-  ensureColumn(database, "users", "storage_used_gb", "REAL NOT NULL DEFAULT 0");
-  ensureColumn(database, "users", "storage_updated_at", "TEXT");
+  dropLegacyStorage(database);
+  // Drop log rows and settings for features that no longer exist.
+  database.exec("DELETE FROM emails WHERE kind IN ('digest','storage-alert','storage-alert-admin')");
+  database.exec("DELETE FROM settings WHERE key = 'storage'");
+}
+
+/**
+ * Storage tracking was removed. Drop its table and the two user columns if an
+ * older build created them; ignored on SQLite builds without DROP COLUMN.
+ */
+function dropLegacyStorage(database: DatabaseSync) {
+  try {
+    database.exec("DROP TABLE IF EXISTS storage_readings");
+    database.exec("DROP TABLE IF EXISTS storage_observations");
+    for (const column of ["storage_used_gb", "storage_updated_at"]) {
+      const columns = database.prepare("PRAGMA table_info(users)").all() as { name: string }[];
+      if (columns.some((entry) => entry.name === column)) {
+        database.exec(`ALTER TABLE users DROP COLUMN ${column}`);
+      }
+    }
+  } catch {
+    /* older SQLite: leave the unused columns in place */
+  }
 }
 
 function ensureColumn(database: DatabaseSync, table: string, column: string, definition: string) {

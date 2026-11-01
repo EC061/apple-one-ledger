@@ -7,7 +7,6 @@ import { markOverdue } from "./billing";
 import { sendAdminAdvanceEmail, sendLateKickEmail, sendReminderEmail, sendRenewalNoticeEmail } from "./email";
 import { getBaseUrl } from "./url";
 import { getAdmin } from "./auth";
-import { checkStorage } from "./storage";
 import type { Invoice, User } from "./types";
 
 export interface InvoiceWithUser extends Invoice {
@@ -38,8 +37,6 @@ function asUser(row: InvoiceWithUser): User {
     status: row.user_status as User["status"],
     paid_through: null,
     note: null,
-    storage_used_gb: 0,
-    storage_updated_at: null,
     created_at: "",
     updated_at: "",
   };
@@ -178,7 +175,6 @@ export interface DailyResult {
   advanceSent: number;
   lateSent: number;
   fxRefreshed: boolean;
-  storage?: { over: number; sent: number };
 }
 
 const schedulerState = globalThis as unknown as { __a1JobsRunning?: boolean };
@@ -215,22 +211,13 @@ export async function runDailyJobs(options: { skipEmail?: boolean } = {}): Promi
       lateSent = await sendLateKickNotices(day);
     }
 
-    let storage: { over: number; sent: number } | undefined;
-    if (!options.skipEmail) {
-      try {
-        storage = await checkStorage(day);
-      } catch {
-        /* storage alerts are best-effort */
-      }
-    }
-
-    return { day, overdueMarked, advanceSent, lateSent, fxRefreshed, storage };
+    return { day, overdueMarked, advanceSent, lateSent, fxRefreshed };
   } finally {
     schedulerState.__a1JobsRunning = false;
   }
 }
 
-/** Members past grace: the admin UI and digest use this to show who to remove. */
+/** Members past grace: the admin UI uses this to show who to remove. */
 export function removalCandidates(day = today(getSettings().plan.timezone)) {
   const cutoff = addDays(day, -getSettings().plan.graceDays);
   return db()

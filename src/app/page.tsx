@@ -22,7 +22,6 @@ export default async function HomePage() {
   const settings = getSettings();
   const t = dict[lang];
   const seatCost = perSeatMonthly(settings.pricing, settings.plan.seats);
-  const quota = Math.floor(settings.storage.totalGb / Math.max(settings.storage.shareCount, 1));
 
   return (
     <div className="page">
@@ -43,9 +42,9 @@ export default async function HomePage() {
       </header>
 
       <main className="grow">
-        <Hero t={t} seats={settings.plan.seats} planName={settings.plan.name} quota={quota} />
+        <Hero t={t} seats={settings.plan.seats} planName={settings.plan.name} />
         <div className="container stack" style={{ paddingBottom: 56 }}>
-          <ServicesSection t={t} services={settings.plan.services} quota={quota} shareCount={settings.storage.shareCount} />
+          <ServicesSection t={t} services={settings.plan.services} seats={settings.plan.seats} />
           <PricingSection t={t} pricing={settings.pricing} />
           <CostBasis t={t} pricing={settings.pricing} seats={settings.plan.seats} seatCost={seatCost} />
           <RulesSection
@@ -55,7 +54,7 @@ export default async function HomePage() {
             advanceDays={settings.reminders.advanceDays}
           />
           <PaymentsSection t={t} />
-          <InfoCards t={t} pool={settings.storage.totalGb} shareCount={settings.storage.shareCount} quota={quota} seats={settings.plan.seats} />
+          <InfoCards t={t} seats={settings.plan.seats} />
         </div>
       </main>
 
@@ -74,7 +73,7 @@ export default async function HomePage() {
   );
 }
 
-function Hero({ t, seats, planName, quota }: { t: Copy; seats: number; planName: string; quota: number }) {
+function Hero({ t, seats, planName }: { t: Copy; seats: number; planName: string }) {
   return (
     <section className="hero">
       <div className="container hero-grid">
@@ -97,7 +96,7 @@ function Hero({ t, seats, planName, quota }: { t: Copy; seats: number; planName:
             <span className="sub-kicker">01</span>
             <strong>{t.groupOne}</strong>
             <span className="sub-note">{t.groupOneNote}</span>
-            <span className="sub-quota">{fill(t.icloudNote, { gb: quota })}</span>
+            <span className="sub-quota">{t.icloudNote}</span>
           </div>
           <div className="sub-card sub-card-alt">
             <span className="sub-kicker">02</span>
@@ -113,13 +112,11 @@ function Hero({ t, seats, planName, quota }: { t: Copy; seats: number; planName:
 function ServicesSection({
   t,
   services,
-  quota,
-  shareCount,
+  seats,
 }: {
   t: Copy;
   services: string[];
-  quota: number;
-  shareCount: number;
+  seats: number;
 }) {
   const appleOne = services.filter((name) => !/applecare/i.test(name));
   const appleCare = services.filter((name) => /applecare/i.test(name));
@@ -148,12 +145,12 @@ function ServicesSection({
             <div className="row-between">
               <div>
                 <div className="service-name">{t.icloudName}</div>
-                <div className="service-note">{fill(t.icloudNote, { gb: quota })}</div>
+                <div className="service-note">{t.icloudNote}</div>
               </div>
-              <span className="pill">{quota} GB</span>
+              <span className="pill">2 TB</span>
             </div>
             <div className="segbar" aria-label={t.icloudBar}>
-              {Array.from({ length: Math.min(Math.max(shareCount, 1), 12) }).map((_, index) => (
+              {Array.from({ length: Math.min(Math.max(seats, 1), 12) }).map((_, index) => (
                 <span key={index} />
               ))}
             </div>
@@ -300,19 +297,7 @@ function PaymentsSection({ t }: { t: Copy }) {
   );
 }
 
-function InfoCards({
-  t,
-  pool,
-  shareCount,
-  quota,
-  seats,
-}: {
-  t: Copy;
-  pool: number;
-  shareCount: number;
-  quota: number;
-  seats: number;
-}) {
+function InfoCards({ t, seats }: { t: Copy; seats: number }) {
   return (
     <section className="grid grid-3">
       <div className="card card-pad">
@@ -324,7 +309,7 @@ function InfoCards({
       <div className="card card-pad">
         <h3>{t.storageTitle}</h3>
         <p className="muted small" style={{ marginBottom: 0 }}>
-          {fill(t.storageText, { pool, count: shareCount, gb: quota })}
+          {t.storageText}
         </p>
       </div>
       <div className="card card-pad">

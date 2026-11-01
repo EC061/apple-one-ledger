@@ -36,6 +36,7 @@ export function createInvoice(input: CreateInvoiceInput): Invoice {
   const settings = getSettings();
   const user = db().prepare("SELECT * FROM users WHERE id = ?").get(input.userId) as unknown as User | undefined;
   if (!user) throw new BillingError("Member not found.");
+  if (user.role === "admin") throw new BillingError("The admin seat is always reserved and never billed.");
   if (user.status !== "active") throw new BillingError("This member is no longer active.");
 
   return tx(() => {

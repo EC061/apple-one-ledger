@@ -11,12 +11,11 @@ fix. You will get an acknowledgement within a few days.
 
 ## Scope
 
-This is a self-hosted app that handles family payment records and, optionally,
-SMTP/IMAP credentials. In scope:
+This is a self-hosted app that handles family payment records and, optionally, SMTP
+credentials. In scope:
 
-- authentication bypass (member access codes, admin registration code, sessions)
+- authentication bypass (passwords, admin registration code, sessions)
 - authorization issues (reading or changing another member's invoices)
-- payment-matching abuse (`/api/payments/ingest`, `/api/storage/observations`)
 - SQL injection, path traversal, SSRF, upload handling (`/api/ocr`)
 - secret leakage in logs, responses, or the repository
 
@@ -25,10 +24,10 @@ the database volume, or the `.env` file.
 
 ## Secrets
 
-`SESSION_SECRET`, `ADMIN_REG_CODE`, `INGEST_TOKEN`, `STORAGE_TOKEN`,
-`CRON_SECRET`, SMTP and IMAP passwords are environment-only. They are never
-committed and never written to SQLite. If you rotate `SESSION_SECRET`, every
-member access code is invalidated and must be reissued.
+`SESSION_SECRET`, `ADMIN_REG_CODE` and the SMTP password are environment-only
+(or entered in Settings and stored in SQLite for SMTP). They are never committed.
+If you rotate `SESSION_SECRET`, every session is invalidated and everyone signs
+in again.
 
 ## Supported versions
 

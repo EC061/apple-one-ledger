@@ -44,11 +44,11 @@ export default async function PayPage({
   const methodRows = [
     { key: "venmo", label: "Venmo", value: pay.venmoHandle ? `@${pay.venmoHandle}` : "" },
     { key: "zelle", label: "Zelle", value: pay.zelleEmail },
-    { key: "wechat", label: "WeChat Pay", value: pay.wechatId, qr: pay.wechatQrUrl },
-    { key: "alipay", label: "Alipay", value: pay.alipayId, qr: pay.alipayQrUrl },
+    { key: "wechat", label: "WeChat Pay", value: "", qr: pay.wechatQrUrl },
+    { key: "alipay", label: "Alipay", value: "", qr: pay.alipayQrUrl },
   ];
   const configuredMethods = methodRows
-    .filter((row) => row.value)
+    .filter((row) => row.value || row.qr)
     .map((row) => ({ value: row.key, label: row.label }));
 
   return (

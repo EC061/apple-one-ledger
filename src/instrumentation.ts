@@ -1,9 +1,8 @@
 /**
  * Optional in-process scheduler.
  *
- * Runs the daily job every 6 hours inside the container. All work is
- * deduplicated (reminder keys, digests, storage alerts), so running it more
- * often than daily is harmless. There is no external cron requirement.
+ * Runs the daily job every 6 hours inside the container. Reminder keys make
+ * repeated runs harmless. There is no external cron requirement.
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;

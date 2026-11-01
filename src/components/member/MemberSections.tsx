@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatDate, formatDateTime, formatMoney, relativeDays } from "@/lib/dates";
+import { formatDate, formatMoney, relativeDays } from "@/lib/dates";
 import { PLANS, PLAN_ORDER, priceFor } from "@/lib/pricing";
 import { createInvoiceAction } from "@/app/actions/member";
 import { updateProfileAction } from "@/app/actions/member";
@@ -9,82 +9,53 @@ import SubmitButton from "@/components/SubmitButton";
 import TableHead from "@/components/TableHead";
 import { NextTermNotice } from "@/components/PriceTerms";
 import type { Settings } from "@/lib/settings";
-import type { StorageStatus } from "@/lib/storage";
 import type { Invoice, User } from "@/lib/types";
-
-function storageBadge(storage: StorageStatus): string {
-  if (!storage.reported) return "no data";
-  return `${storage.percent.toFixed(0)}% used`;
-}
-
-function storageTone(storage: StorageStatus, warn: number): string {
-  if (storage.over) return "badge-overdue";
-  if (storage.percent >= warn) return "badge-warn";
-  return "badge-paid";
-}
-
-function storageBar(storage: StorageStatus, warn: number): string {
-  if (storage.over) return "bad";
-  if (storage.percent >= warn) return "warn";
-  return "";
-}
-
-function storageUsage(storage: StorageStatus): string {
-  if (!storage.reported) return "No reading yet";
-  return `${storage.usedGb.toFixed(1)} GB of ${storage.quotaGb.toFixed(1)} GB`;
-}
-
-function storageUpdated(storage: StorageStatus, settings: Settings): string {
-  if (storage.over) return "Over your fair share — please free up space.";
-  if (!storage.updatedAt) return "Not reported yet";
-  const suffix = storage.stale ? " · outdated" : "";
-  return `Updated ${formatDateTime(storage.updatedAt, settings.plan.timezone)}${suffix}`;
-}
-
-export function MemberStorageCard({ settings, storage }: { settings: Settings; storage: StorageStatus }) {
-  if (!settings.storage.enabled) return null;
-  const warn = settings.storage.warnPercent;
-
-  return (
-    <div className="card card-pad">
-      <div className="row-between">
-        <div>
-          <h3>Your storage share</h3>
-          <p className="muted small" style={{ marginBottom: 0 }}>
-            {settings.storage.totalGb} GB family pool split {settings.storage.shareCount} ways ={" "}
-            {storage.quotaGb.toFixed(0)} GB each · fair-share guideline, not a hard cap
-          </p>
-        </div>
-        <span className={`badge ${storageTone(storage, warn)}`}>{storageBadge(storage)}</span>
-      </div>
-      <div className="meter" aria-hidden="true">
-        <span className={storageBar(storage, warn)} style={{ width: `${Math.min(storage.percent, 100)}%` }} />
-      </div>
-      <div className="row-between small muted">
-        <span>{storageUsage(storage)}</span>
-        <span>{storageUpdated(storage, settings)}</span>
-      </div>
-    </div>
-  );
-}
 
 export function BillingSection({
   open,
   termIndex,
   settings,
+  readOnly = false,
+  isAdmin = false,
 }: {
   open: Invoice | null;
   termIndex: number;
   settings: Settings;
+  readOnly?: boolean;
+  isAdmin?: boolean;
 }) {
+  if (isAdmin) {
+    return (
+      <div className="card card-pad">
+        <div className="row-between">
+          <div>
+            <h2>Admin seat</h2>
+            <p className="muted small" style={{ marginBottom: 0 }}>
+              This seat is always reserved and never billed. No invoice is created for the admin.
+            </p>
+          </div>
+          <span className="badge badge-paid">No payment needed</span>
+        </div>
+      </div>
+    );
+  }
+
   return open ? (
-    <OpenInvoicePanel invoice={open} settings={settings} />
+    <OpenInvoicePanel invoice={open} settings={settings} readOnly={readOnly} />
   ) : (
-    <PlanPicker termIndex={termIndex} settings={settings} />
+    <PlanPicker termIndex={termIndex} settings={settings} readOnly={readOnly} />
   );
 }
 
-function OpenInvoicePanel({ invoice: open, settings }: { invoice: Invoice; settings: Settings }) {
+function OpenInvoicePanel({
+  invoice: open,
+  settings,
+  readOnly,
+}: {
+  invoice: Invoice;
+  settings: Settings;
+  readOnly: boolean;
+}) {
   return (
             <div className="card">
               <div className="card-head">
@@ -115,9 +86,15 @@ function OpenInvoicePanel({ invoice: open, settings }: { invoice: Invoice; setti
                   <dd>{open.term_index <= 1 ? "First term (introductory)" : `Renewal (term ${open.term_index})`}</dd>
                 </dl>
                 <div className="row">
-                  <Link href={`/dashboard/pay/${open.id}`} className="btn btn-primary">
-                    {open.status === "submitted" ? "View payment status" : `Pay ${formatMoney(open.amount_usd)}`}
-                  </Link>
+                  {readOnly ? (
+                    <span className="btn btn-primary" style={{ opacity: 0.55, pointerEvents: "none" }}>
+                      {open.status === "submitted" ? "View payment status" : `Pay ${formatMoney(open.amount_usd)}`}
+                    </span>
+                  ) : (
+                    <Link href={`/dashboard/pay/${open.id}`} className="btn btn-primary">
+                      {open.status === "submitted" ? "View payment status" : `Pay ${formatMoney(open.amount_usd)}`}
+                    </Link>
+                  )}
                   <span className="muted small">
                     Reference <span className="mono">{open.reference}</span>
                   </span>
@@ -127,7 +104,15 @@ function OpenInvoicePanel({ invoice: open, settings }: { invoice: Invoice; setti
   );
 }
 
-function PlanPicker({ termIndex, settings }: { termIndex: number; settings: Settings }) {
+function PlanPicker({
+  termIndex,
+  settings,
+  readOnly,
+}: {
+  termIndex: number;
+  settings: Settings;
+  readOnly: boolean;
+}) {
   return (
             <div className="stack">
               <NextTermNotice pricing={settings.pricing} termIndex={termIndex} />
@@ -141,26 +126,37 @@ function PlanPicker({ termIndex, settings }: { termIndex: number; settings: Sett
                 {PLAN_ORDER.map((key) => {
                   const plan = PLANS[key];
                   const price = priceFor(key, termIndex, settings.pricing);
-                  return (
-                    <form action={createInvoiceAction} key={key}>
-                      <input type="hidden" name="plan" value={key} />
-                      <div className="price-card" style={{ height: "100%" }}>
-                        <div className="price-name">{plan.label}</div>
-                        <div className="price-amount">
-                          {formatMoney(price)} <span>{plan.months} months</span>
-                        </div>
-                        <div className="price-note">
-                          {termIndex <= 1 ? "First-term price" : "Renewal price"} ·{" "}
-                          {formatMoney(price / plan.months)}/month
-                        </div>
-                        <div className="price-renew">
-                          Renews at {formatMoney(priceFor(key, termIndex + 1, settings.pricing))}
-                        </div>
-                        <div className="spacer" style={{ minHeight: 10 }} />
+                  const card = (
+                    <div className="price-card" style={{ height: "100%" }}>
+                      <div className="price-name">{plan.label}</div>
+                      <div className="price-amount">
+                        {formatMoney(price)} <span>{plan.months} months</span>
+                      </div>
+                      <div className="price-note">
+                        {termIndex <= 1 ? "First-term price" : "Renewal price"} ·{" "}
+                        {formatMoney(price / plan.months)}/month
+                      </div>
+                      <div className="price-renew">
+                        Renews at {formatMoney(priceFor(key, termIndex + 1, settings.pricing))}
+                      </div>
+                      <div className="spacer" style={{ minHeight: 10 }} />
+                      {readOnly ? (
+                        <button type="button" className="btn btn-primary btn-block" disabled>
+                          Choose {plan.label.toLowerCase()} · {formatMoney(price)}
+                        </button>
+                      ) : (
                         <SubmitButton className="btn btn-primary btn-block" pending="Creating invoice…">
                           Choose {plan.label.toLowerCase()} · {formatMoney(price)}
                         </SubmitButton>
-                      </div>
+                      )}
+                    </div>
+                  );
+                  return readOnly ? (
+                    <div key={key}>{card}</div>
+                  ) : (
+                    <form action={createInvoiceAction} key={key}>
+                      <input type="hidden" name="plan" value={key} />
+                      {card}
                     </form>
                   );
                 })}
@@ -169,7 +165,7 @@ function PlanPicker({ termIndex, settings }: { termIndex: number; settings: Sett
   );
 }
 
-export function HistoryCard({ history }: { history: Invoice[] }) {
+export function HistoryCard({ history, readOnly = false }: { history: Invoice[]; readOnly?: boolean }) {
   return (
     <>
           <div className="card">
@@ -194,7 +190,11 @@ export function HistoryCard({ history }: { history: Invoice[] }) {
                     {history.map((invoice) => (
                       <tr key={invoice.id}>
                         <td className="mono small">
-                          <Link href={`/dashboard/pay/${invoice.id}`}>{invoice.reference}</Link>
+                          {readOnly ? (
+                            invoice.reference
+                          ) : (
+                            <Link href={`/dashboard/pay/${invoice.id}`}>{invoice.reference}</Link>
+                          )}
                         </td>
                         <td>
                           <div>{formatDate(invoice.period_start)} – {formatDate(invoice.period_end)}</div>
@@ -226,7 +226,7 @@ export function HistoryCard({ history }: { history: Invoice[] }) {
   );
 }
 
-export function ProfileCards({ user }: { user: User }) {
+export function ProfileCards({ user, readOnly = false }: { user: User; readOnly?: boolean }) {
   return (
     <>
           <div className="split">
@@ -235,28 +235,44 @@ export function ProfileCards({ user }: { user: User }) {
                 <h2>Your details</h2>
               </div>
               <div className="card-body">
-                <form action={updateProfileAction} className="stack-sm">
+                {readOnly ? (
                   <div className="form-grid">
                     <div className="field">
-                      <label className="label" htmlFor="name">
-                        Name
-                      </label>
-                      <input id="name" name="name" className="input" defaultValue={user.name} required />
+                      <span className="label">Name</span>
+                      <div>{user.name}</div>
                     </div>
                     <div className="field">
-                      <label className="label" htmlFor="email">
-                        Email
-                      </label>
-                      <input id="email" name="email" type="email" className="input" defaultValue={user.email} required />
+                      <span className="label">Email</span>
+                      <div>{user.email}</div>
+                    </div>
+                    <div className="full">
+                      <span className="hint">Read-only preview — the member can edit these details.</span>
                     </div>
                   </div>
-                  <div className="row">
-                    <SubmitButton className="btn btn-secondary" pending="Saving…">
-                      Save details
-                    </SubmitButton>
-                    <span className="hint">Reminders and receipts are sent to this address.</span>
-                  </div>
-                </form>
+                ) : (
+                  <form action={updateProfileAction} className="stack-sm">
+                    <div className="form-grid">
+                      <div className="field">
+                        <label className="label" htmlFor="name">
+                          Name
+                        </label>
+                        <input id="name" name="name" className="input" defaultValue={user.name} required />
+                      </div>
+                      <div className="field">
+                        <label className="label" htmlFor="email">
+                          Email
+                        </label>
+                        <input id="email" name="email" type="email" className="input" defaultValue={user.email} required />
+                      </div>
+                    </div>
+                    <div className="row">
+                      <SubmitButton className="btn btn-secondary" pending="Saving…">
+                        Save details
+                      </SubmitButton>
+                      <span className="hint">Reminders and receipts are sent to this address.</span>
+                    </div>
+                  </form>
+                )}
               </div>
             </div>
 
@@ -266,14 +282,18 @@ export function ProfileCards({ user }: { user: User }) {
               </div>
               <div className="card-body stack-sm">
                 <p className="muted small" style={{ marginBottom: 0 }}>
-                  Signed in as <strong>{user.email}</strong>. If your code leaked, sign out everywhere and ask the
-                  admin to issue a new one.
+                  Signed in as <strong>{user.email}</strong>. If your password leaked, sign out everywhere and ask the
+                  admin to set a new one.
                 </p>
-                <form action={logoutAllAction}>
-                  <SubmitButton className="btn btn-danger btn-sm" pending="Signing out…">
-                    Sign out of all devices
-                  </SubmitButton>
-                </form>
+                {readOnly ? (
+                  <span className="hint">Read-only preview — the member can sign out of all devices here.</span>
+                ) : (
+                  <form action={logoutAllAction}>
+                    <SubmitButton className="btn btn-danger btn-sm" pending="Signing out…">
+                      Sign out of all devices
+                    </SubmitButton>
+                  </form>
+                )}
               </div>
             </div>
           </div>
@@ -298,7 +318,9 @@ export function MemberHeader({
           {settings.plan.name} · {settings.plan.seats} seats in total
         </p>
       </div>
-      {covered ? (
+      {user.role === "admin" ? (
+        <span className="badge badge-paid">No payment needed</span>
+      ) : covered ? (
         <span className="badge badge-paid">Covered until {formatDate(user.paid_through)}</span>
       ) : (
         <span className="badge badge-overdue">No active coverage</span>
@@ -311,24 +333,30 @@ export function MemberStats({
   user,
   open,
   termIndex,
-  storage,
   settings,
   covered,
 }: {
   user: User;
   open: Invoice | null;
   termIndex: number;
-  storage: StorageStatus;
   settings: Settings;
   covered: boolean;
 }) {
   return (
-    <div className="grid grid-4">
+    <div className="grid grid-3">
       <Stat
         label="Coverage"
-        value={user.paid_through ? formatDate(user.paid_through) : "Not covered"}
-        sub={user.paid_through ? relativeDays(user.paid_through, settings.plan.timezone) : "Pick a term to start"}
-        tone={covered ? undefined : "warn"}
+        value={
+          user.role === "admin" ? "No payment needed" : user.paid_through ? formatDate(user.paid_through) : "Not covered"
+        }
+        sub={
+          user.role === "admin"
+            ? "admin seat is always reserved"
+            : user.paid_through
+              ? relativeDays(user.paid_through, settings.plan.timezone)
+              : "Pick a term to start"
+        }
+        tone={user.role === "admin" ? undefined : covered ? undefined : "warn"}
       />
       <Stat
         label="Open balance"
@@ -340,16 +368,6 @@ export function MemberStats({
         label="Term"
         value={`Term ${termIndex}`}
         sub={termIndex <= 1 ? "first-term pricing applies" : "renewal pricing applies"}
-      />
-      <Stat
-        label="Storage"
-        value={storage.reported ? `${storage.usedGb.toFixed(0)} GB` : "Not reported"}
-        sub={
-          storage.reported
-            ? `of ${storage.quotaGb.toFixed(0)} GB share (${storage.percent.toFixed(0)}%)`
-            : "Waiting for the admin to report usage"
-        }
-        tone={storage.over ? "bad" : storage.percent >= settings.storage.warnPercent ? "warn" : undefined}
       />
     </div>
   );

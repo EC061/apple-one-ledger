@@ -174,8 +174,6 @@ export function createAdmin(email: string, name: string, password: string): User
     status: "active",
     paid_through: null,
     note: null,
-    storage_used_gb: 0,
-    storage_updated_at: null,
     created_at: now,
     updated_at: now,
   };

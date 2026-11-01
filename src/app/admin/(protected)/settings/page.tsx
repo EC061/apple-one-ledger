@@ -14,7 +14,6 @@ import {
   PlanPricingCard,
   RemindersCard,
   SmtpCard,
-  StorageCard,
 } from "@/components/settings/SettingsSections";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +24,6 @@ const SAVED: Record<string, string> = {
   smtp: "SMTP settings saved.",
   fx: "Exchange-rate settings saved.",
   reminders: "Reminder settings saved.",
-  storage: "Storage settings saved.",
   app: "Application settings saved.",
   profile: "Profile updated.",
   "smtp-test": "Test email sent — check the inbox.",
@@ -65,7 +63,7 @@ export default async function SettingsPage({
         </div>
         <div className="row small muted">
           <Link href="#pricing">Pricing</Link>·<Link href="#payments">Payments</Link>·<Link href="#email">Email</Link>·
-          <Link href="#fx">FX</Link>·<Link href="#reminders">Reminders</Link>·<Link href="#storage">Storage</Link>·
+          <Link href="#fx">FX</Link>·<Link href="#reminders">Reminders</Link>·
           <Link href="#app">Application</Link>·<Link href="#profile">Profile</Link>
         </div>
       </div>
@@ -100,7 +98,6 @@ export default async function SettingsPage({
       <SmtpCard />
       <FxCard />
       <RemindersCard />
-      <StorageCard />
       <AppCard />
       <AdminProfileCard />
       <EmailLogCard />
