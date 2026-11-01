@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS users (
   name             TEXT NOT NULL,
   email            TEXT NOT NULL,
   access_code_hash TEXT,
+  password_hash    TEXT,
   status           TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','removed')),
   paid_through     TEXT,
   note             TEXT,
@@ -169,6 +170,7 @@ CREATE INDEX IF NOT EXISTS events_at ON events(at);
 function migrate(database: DatabaseSync) {
   database.exec(SCHEMA);
   // Additive upgrades for databases created by older builds.
+  ensureColumn(database, "users", "password_hash", "TEXT");
   ensureColumn(database, "users", "storage_used_gb", "REAL NOT NULL DEFAULT 0");
   ensureColumn(database, "users", "storage_updated_at", "TEXT");
 }

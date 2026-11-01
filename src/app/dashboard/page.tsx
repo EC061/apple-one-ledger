@@ -16,7 +16,6 @@ import {
   ProfileCards,
 } from "@/components/member/MemberSections";
 import { Notice, Stat } from "@/components/ui";
-import AccessCodeFlash from "@/components/AccessCodeFlash";
 import InstallHint from "@/components/InstallHint";
 import type { Invoice } from "@/lib/types";
 
@@ -56,7 +55,6 @@ export default async function DashboardPage({
       <TopBar user={user} area="member" />
       <main className="grow">
         <div className="container stack">
-          <AccessCodeFlash />
           <InstallHint />
 
           {params.joined ? (

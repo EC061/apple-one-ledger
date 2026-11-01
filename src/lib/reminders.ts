@@ -40,6 +40,7 @@ function asUser(row: InvoiceWithUser): User {
     name: row.user_name,
     email: row.user_email,
     access_code_hash: null,
+    password_hash: null,
     status: row.user_status as unknown as User["status"],
     paid_through: null,
     note: null,

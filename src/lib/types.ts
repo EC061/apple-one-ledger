@@ -11,6 +11,7 @@ export interface User {
   name: string;
   email: string;
   access_code_hash: string | null;
+  password_hash: string | null;
   status: MemberStatus;
   paid_through: string | null;
   note: string | null;

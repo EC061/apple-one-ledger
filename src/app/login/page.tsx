@@ -1,30 +1,29 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { unifiedAuthAction } from "@/app/actions/auth";
+import { loginAction, signupAction } from "@/app/actions/auth";
 import { adminCodeConfigured } from "@/lib/auth";
 import { Notice } from "@/components/ui";
 import SubmitButton from "@/components/SubmitButton";
 
 export const metadata: Metadata = {
   title: "Sign in",
-  description: "Sign in or create your account with an access, invite or admin code.",
+  description: "Sign in or create your family plan account with email and password.",
 };
 
 export const dynamic = "force-dynamic";
 
 const ERRORS: Record<string, string> = {
-  empty: "Enter your code.",
-  invalid: "That code was not recognised.",
+  invalid: "Email or password is not correct.",
   removed: "This seat has been removed. Contact the admin.",
   rate: "Too many attempts. Wait 15 minutes.",
+  empty: "Enter your invite or admin code.",
   email: "Enter a valid email address.",
-  "admin-email": "Admin sign-in needs the admin email address.",
-  name: "Enter your name (2–60 characters) to create an account.",
-  claimed: "This deployment already has an admin with a different email.",
+  name: "Enter your name (2–60 characters).",
+  weak: "Use at least 12 characters and mix upper case, lower case, numbers or symbols.",
   used: "That invite has already been used.",
   expired: "That invite has expired.",
   full: "All seats are taken.",
-  exists: "That email already has an account — sign in with its access code.",
+  exists: "That email already has an account — sign in instead.",
 };
 
 export default async function LoginPage({
@@ -34,24 +33,18 @@ export default async function LoginPage({
 }) {
   const { error, code, signup } = await searchParams;
   const adminReady = adminCodeConfigured();
+  const createFirst = Boolean(signup || code);
 
   return (
     <div className="auth-wrap">
-      <div className="auth-card" style={{ maxWidth: 470 }}>
+      <div className="auth-card" style={{ maxWidth: 560 }}>
         <div className="auth-brand">
           <span className="brand-mark">A1</span>
           <div>
             <strong>Apple One Ledger</strong>
-            <div className="muted small">Members and admin · one page</div>
+            <div className="muted small">Members and admin</div>
           </div>
         </div>
-
-        <h1 style={{ fontSize: 22 }}>{signup ? "Create your account" : "Continue with your code"}</h1>
-        <p className="muted small">
-          {signup
-            ? "Sign-up needs a one-time invite code from the admin, plus your name and email."
-            : "The same field works for members, new invites and the admin. What happens next depends on the code you enter."}
-        </p>
 
         {error ? (
           <div style={{ marginBottom: 14 }}>
@@ -59,65 +52,19 @@ export default async function LoginPage({
           </div>
         ) : null}
 
-        <form action={unifiedAuthAction} className="stack-sm">
-          <div className="field">
-            <label className="label" htmlFor="code">
-              Access, invite or admin code
-            </label>
-            <input
-              id="code"
-              name="code"
-              className="input mono"
-              placeholder="XXXX-XXXX-XXXX-XXXX"
-              autoComplete="one-time-code"
-              autoCapitalize="characters"
-              spellCheck={false}
-              defaultValue={code ?? ""}
-              required
-            />
-          </div>
-
-          <div className="form-grid">
-            <div className="field">
-              <label className="label" htmlFor="name">
-                Name
-              </label>
-              <input id="name" name="name" className="input" placeholder="Only for a new account" autoComplete="name" />
-            </div>
-            <div className="field">
-              <label className="label" htmlFor="email">
-                Email
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                className="input"
-                placeholder="Admin or new invite"
-                autoComplete="email"
-              />
-            </div>
-          </div>
-
-          <SubmitButton className="btn btn-primary btn-block" pending="Checking…">
-            Continue
-          </SubmitButton>
-        </form>
-
-        <div className="notice small" style={{ marginTop: 14 }}>
-          <ul style={{ margin: 0, paddingLeft: 18 }}>
-            <li>
-              <strong>Member:</strong> your saved access code — name and email can stay empty.
-            </li>
-            <li>
-              <strong>New member:</strong> the invite code, plus your name and email.
-            </li>
-            <li>
-              <strong>Admin:</strong> the <span className="mono">ADMIN_REG_CODE</span> (12+ characters) and the admin email.
-              {adminReady ? "" : " Admin sign-in is disabled until that variable is set."}
-            </li>
-          </ul>
-        </div>
+        {createFirst ? (
+          <>
+            <CreateAccount code={code} adminReady={adminReady} />
+            <hr />
+            <SignIn />
+          </>
+        ) : (
+          <>
+            <SignIn />
+            <hr />
+            <CreateAccount code={code} adminReady={adminReady} />
+          </>
+        )}
 
         <hr />
         <div className="row-between small">
@@ -126,5 +73,115 @@ export default async function LoginPage({
         </div>
       </div>
     </div>
+  );
+}
+
+function SignIn() {
+  return (
+    <>
+      <h1 style={{ fontSize: 22 }}>Sign in</h1>
+      <p className="muted small">Your email and password. Admin signs in the same way.</p>
+      <form action={loginAction} className="stack-sm">
+        <div className="field">
+          <label className="label" htmlFor="login-email">
+            Email
+          </label>
+          <input
+            id="login-email"
+            name="email"
+            type="email"
+            className="input"
+            autoComplete="username"
+            required
+          />
+        </div>
+        <div className="field">
+          <label className="label" htmlFor="login-password">
+            Password
+          </label>
+          <input
+            id="login-password"
+            name="password"
+            type="password"
+            className="input"
+            autoComplete="current-password"
+            required
+          />
+        </div>
+        <SubmitButton className="btn btn-primary btn-block" pending="Signing in…">
+          Sign in
+        </SubmitButton>
+      </form>
+    </>
+  );
+}
+
+function CreateAccount({ code, adminReady }: { code?: string; adminReady: boolean }) {
+  return (
+    <>
+      <h1 style={{ fontSize: 22 }}>Create an account</h1>
+      <p className="muted small">
+        An invite code creates a member. The admin registration code creates (or recovers) the admin.
+        You choose the email and password used to sign in from now on.
+      </p>
+      <form action={signupAction} className="stack-sm">
+        <div className="field">
+          <label className="label" htmlFor="signup-code">
+            Invite or admin code
+          </label>
+          <input
+            id="signup-code"
+            name="code"
+            className="input mono"
+            placeholder="XXXXX-XXXXX or ADMIN_REG_CODE"
+            defaultValue={code ?? ""}
+            autoComplete="one-time-code"
+            required
+          />
+          {adminReady ? null : (
+            <span className="hint">Admin sign-up is disabled until ADMIN_REG_CODE is set.</span>
+          )}
+        </div>
+        <div className="form-grid">
+          <div className="field">
+            <label className="label" htmlFor="signup-name">
+              Name
+            </label>
+            <input id="signup-name" name="name" className="input" autoComplete="name" required />
+          </div>
+          <div className="field">
+            <label className="label" htmlFor="signup-email">
+              Email
+            </label>
+            <input
+              id="signup-email"
+              name="email"
+              type="email"
+              className="input"
+              autoComplete="email"
+              required
+            />
+          </div>
+        </div>
+        <div className="field">
+          <label className="label" htmlFor="signup-password">
+            Password
+          </label>
+          <input
+            id="signup-password"
+            name="password"
+            type="password"
+            className="input"
+            autoComplete="new-password"
+            minLength={12}
+            required
+          />
+          <span className="hint">12+ characters, with at least three of: lower case, upper case, number, symbol.</span>
+        </div>
+        <SubmitButton className="btn btn-primary btn-block" pending="Creating…">
+          Create account
+        </SubmitButton>
+      </form>
+    </>
   );
 }

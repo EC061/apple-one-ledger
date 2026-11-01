@@ -8,17 +8,19 @@ public `https://` URL.
 
 ## Admin sign-in says invalid
 
-- `ADMIN_REG_CODE` must be at least **12 characters**; shorter values disable admin auth.
-- The email must match the admin account created on first use. A different email returns the
-  generic failure on purpose.
-- If no admin exists, the first valid code + email creates it.
+- Login is **email + password**, not the admin code.
+- The admin code is only for **Create an account** (first run) or password recovery with the same
+  email; it must be at least **12 characters**.
+- If you forgot the admin password, use `Create an account` with `ADMIN_REG_CODE` and the admin
+  email to set a new one.
 
 ## Member/invite sign-in fails
 
 - `used` — invite already redeemed.
 - `expired` — past the invite expiry.
+- `weak` — password under 12 characters or too few character classes.
 - `full` — six active seats; remove one first.
-- `exists` — email already has an account; use its access code.
+- `exists` — email already has an account; sign in instead.
 - `removed` — the seat was disabled.
 
 ## No email arrives

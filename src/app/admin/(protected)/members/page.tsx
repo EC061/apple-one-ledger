@@ -7,7 +7,7 @@ import { statusFor } from "@/lib/storage";
 import { PLANS, PLAN_ORDER } from "@/lib/pricing";
 import {
   createMemberAction,
-  resetMemberCodeAction,
+  resetMemberPasswordAction,
   setMemberStatusAction,
   setPaidThroughAction,
   updateMemberAction,
@@ -16,7 +16,6 @@ import {
 } from "@/app/actions/admin";
 import { MemberBadge, Notice, StatusBadge } from "@/components/ui";
 import SubmitButton from "@/components/SubmitButton";
-import AccessCodeFlash from "@/components/AccessCodeFlash";
 import type { InvoiceStatus, MemberStatus, Plan, Role } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +27,7 @@ const ERRORS: Record<string, string> = {
   missing: "Member not found.",
   date: "Use a YYYY-MM-DD date.",
   storage: "Enter storage usage in GB (0 or more).",
+  weak: "Use at least 12 characters and mix upper, lower, numbers or symbols.",
   admin: "The admin account cannot be removed.",
 };
 
@@ -68,13 +68,11 @@ export default async function MembersPage({
 
   return (
     <>
-      <AccessCodeFlash />
-
       {params.error ? (
         <Notice tone="error">{ERRORS[params.error] ?? "Something went wrong. Please try again."}</Notice>
       ) : null}
-      {params.created ? <Notice tone="ok">Member created. Send them the access code above.</Notice> : null}
-      {params.reset ? <Notice tone="ok">Access code reset. Any existing sessions were signed out.</Notice> : null}
+      {params.created ? <Notice tone="ok">Member created. They sign in with the email and password you set.</Notice> : null}
+      {params.reset ? <Notice tone="ok">Password reset. Any existing sessions were signed out.</Notice> : null}
       {params.saved ? <Notice tone="ok">Saved.</Notice> : null}
 
       <div className="row-between">
@@ -171,10 +169,20 @@ export default async function MembersPage({
                             </p>
                           ) : (
                             <>
-                              <form action={resetMemberCodeAction}>
+                              <form action={resetMemberPasswordAction} className="stack-sm">
                                 <input type="hidden" name="userId" value={row.id} />
-                                <SubmitButton className="btn btn-secondary btn-sm btn-block" pending="Resetting…">
-                                  Reset access code
+                                <input
+                                  name="password"
+                                  type="password"
+                                  className="input"
+                                  placeholder="New password (12+ chars)"
+                                  autoComplete="new-password"
+                                  minLength={12}
+                                  required
+                                  aria-label={`New password for ${row.name}`}
+                                />
+                                <SubmitButton className="btn btn-secondary btn-sm" pending="Saving…">
+                                  Set password
                                 </SubmitButton>
                               </form>
 
@@ -269,7 +277,7 @@ export default async function MembersPage({
         <div className="card-head">
           <div>
             <h2>Add a member directly</h2>
-            <span className="muted small">Generates an access code you can hand over. Invite links are usually nicer.</span>
+            <span className="muted small">You set the password and hand it over. Invite links let the member choose their own.</span>
           </div>
         </div>
         <div className="card-body">
@@ -286,7 +294,22 @@ export default async function MembersPage({
               </label>
               <input id="new-email" name="email" type="email" className="input" placeholder="alex@example.com" required />
             </div>
-            <div className="field full">
+            <div className="field">
+              <label className="label" htmlFor="new-password">
+                Initial password
+              </label>
+              <input
+                id="new-password"
+                name="password"
+                type="password"
+                className="input"
+                autoComplete="new-password"
+                minLength={12}
+                required
+              />
+              <span className="hint">12+ characters, mixed case/numbers/symbols.</span>
+            </div>
+            <div className="field">
               <label className="label" htmlFor="new-note">
                 Note (optional)
               </label>

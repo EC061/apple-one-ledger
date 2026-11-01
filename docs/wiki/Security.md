@@ -2,21 +2,24 @@
 
 ## Authentication
 
-One page, `/login`, accepts three kinds of code:
+Accounts sign in with **email + password** on `/login`. Passwords are hashed with scrypt and a
+per-password salt; sessions are random 256-bit tokens stored hashed, `HttpOnly`, `SameSite=Lax`,
+`Secure` on HTTPS, 30 days by default.
 
-1. **Admin** — `ADMIN_REG_CODE` (12+ chars) plus the admin email. The first successful use creates
-   the admin account; later logins must use the same email.
-2. **Member** — the 16-character access code issued at signup.
-3. **Invite** — unused, unexpired invite token; creates the member with the entered name/email.
+Two codes exist for **account creation**, never for login:
 
-Codes are compared constant-time (admin) or via peppered SHA-256 (members). Sessions are random
-256-bit tokens stored hashed, `HttpOnly`, `SameSite=Lax`, `Secure` on HTTPS, 30 days by default.
+- `ADMIN_REG_CODE` (12+ chars) — creates the admin account on first use, or resets its password
+  when used with the same email.
+- **Invite token** — single-use, expiring; the member sets their own name, email and password.
+
+There is no access-code login. A forgotten member password is reset by an admin under
+**Members → Set password**; a forgotten admin password uses the admin code on the signup form.
 
 ## Hardening in place
 
 - Per-IP **and** global login attempt limits; client IP comes from the proxy-appended
   `X-Forwarded-For`, never `X-Real-IP`.
-- Admin failures are indistinguishable from a wrong code (no credential oracle).
+- Login failures are generic; the admin registration code is compared constant-time and is not a login credential.
 - Invite validity, expiry, seat count and email uniqueness are re-checked inside
   `BEGIN IMMEDIATE`; invite consumption requires `used_at IS NULL AND revoked_at IS NULL`.
 - Invoice updates use status predicates; approving a payment cannot double-record it.
@@ -38,7 +41,7 @@ Codes are compared constant-time (admin) or via peppered SHA-256 (members). Sess
 ## Secrets
 
 `SESSION_SECRET`, `ADMIN_REG_CODE`, SMTP credentials live only in the environment. Changing
-`SESSION_SECRET` invalidates every member access code.
+`SESSION_SECRET` invalidates every session (everyone signs in again).
 
 ## Reporting
 

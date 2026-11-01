@@ -7,19 +7,18 @@ import {
   createAdmin,
   createSession,
   destroySession,
-  generateCode,
   getAdmin,
-  hashAccessCode,
+  hashPassword,
+  passwordProblem,
   rateLimit,
   seatCapacity,
   seatsUsed,
   verifyAdminCode,
+  verifyPassword,
 } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { today } from "@/lib/dates";
-import { sendAccessCodeEmail } from "@/lib/email";
-import { setAccessCodeFlash } from "@/lib/flash";
-import { getBaseUrl, requestMeta } from "@/lib/url";
+import { requestMeta } from "@/lib/url";
 import type { Invite, User } from "@/lib/types";
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -34,55 +33,68 @@ async function attemptKey(prefix: string): Promise<string> {
   return `${prefix}:${meta.ip || "unknown"}`;
 }
 
+/** Email + password for members and admin. */
+export async function loginAction(formData: FormData) {
+  const email = text(formData, "email").toLowerCase();
+  const password = text(formData, "password");
+
+  if (!(await rateLimitAsync("login"))) redirect("/login?error=rate");
+  if (!EMAIL.test(email) || !password) redirect("/login?error=invalid");
+
+  const user = db()
+    .prepare("SELECT * FROM users WHERE lower(email) = ?")
+    .get(email) as unknown as User | undefined;
+
+  if (!user || !verifyPassword(password, user.password_hash)) {
+    redirect("/login?error=invalid");
+  }
+  if (user.status !== "active") redirect("/login?error=removed");
+
+  await createSession(user.id);
+  event(user.id, "auth.login", { role: user.role });
+  redirect(user.role === "admin" ? "/admin" : "/dashboard");
+}
+
 /**
- * One entry point for everybody. The code decides what happens:
- *   1. ADMIN_REG_CODE          → admin sign-in, or admin account creation on first use
- *   2. a member access code    → member sign-in
- *   3. an unused invite code   → member account creation (name + email required)
- * Anything else is rejected. One page, no separate admin login.
+ * Account creation. The code decides the role:
+ *   ADMIN_REG_CODE     → create the admin, or reset its password if the email matches
+ *   an unused invite   → create a member
+ * Email and a strong password are set here; the invite itself is never a login credential.
  */
-export async function unifiedAuthAction(formData: FormData) {
+export async function signupAction(formData: FormData) {
   const code = text(formData, "code");
   const name = text(formData, "name");
   const email = text(formData, "email").toLowerCase();
+  const password = text(formData, "password");
 
-  // Two buckets: per-IP and a global cap that survives header rotation.
-  if (!(await rateLimitAsync("auth"))) redirect("/login?error=rate");
-  if (!rateLimit("auth:global", 150, 15 * 60_000)) redirect("/login?error=rate");
+  if (!(await rateLimitAsync("signup"))) redirect("/login?error=rate");
   if (!code) redirect("/login?error=empty");
+  if (!EMAIL.test(email)) redirect("/login?error=email");
+  if (name.length < 2 || name.length > 60) redirect("/login?error=name");
 
-  // 1. Admin code
+  const weak = passwordProblem(password);
+  if (weak) redirect("/login?error=weak");
+
+  // Admin account creation / password recovery.
   if (adminCodeConfigured() && verifyAdminCode(code)) {
-    // Never reveal "the code was right but the email was wrong": both cases
-    // return the same generic failure a wrong code does.
-    if (!EMAIL.test(email)) redirect("/login?error=invalid");
-
     let admin = getAdmin();
     if (!admin) {
-      admin = createAdmin(email, name || "Family admin");
+      admin = createAdmin(email, name, password);
       event(admin.id, "admin.created", { email });
     } else if (admin.email.toLowerCase() !== email) {
       redirect("/login?error=invalid");
+    } else {
+      db()
+        .prepare("UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?")
+        .run(hashPassword(password), nowIso(), admin.id);
+      event(admin.id, "admin.password_reset", { email });
     }
 
     await createSession(admin.id);
-    event(admin.id, "auth.login", { role: "admin" });
     redirect("/admin");
   }
 
-  // 2. Member access code
-  const member = db()
-    .prepare("SELECT * FROM users WHERE access_code_hash = ?")
-    .get(hashAccessCode(code)) as unknown as User | undefined;
-
-  if (member) {
-    if (member.status !== "active") redirect("/login?error=removed");
-    await createSession(member.id);
-    event(member.id, "auth.login", { role: member.role });
-    redirect(member.role === "admin" ? "/admin" : "/dashboard");
-  }
-
-  // 3. Invite code → create the member account
+  // Member account creation from an invite.
   const inviteCode = code.toUpperCase();
   const invite = db()
     .prepare("SELECT * FROM invites WHERE code = ?")
@@ -95,19 +107,13 @@ export async function unifiedAuthAction(formData: FormData) {
   if (invite.expires_at && invite.expires_at < today(settings.plan.timezone)) {
     redirect("/login?error=expired");
   }
-  if (name.length < 2 || name.length > 60) redirect("/login?error=name");
-  if (!EMAIL.test(email)) redirect("/login?error=email");
 
-  const accessCode = generateCode();
   const userId = newId();
   const now = nowIso();
+  const passwordHash = hashPassword(password);
 
-  // Capacity, invite validity and member creation commit together: otherwise a
-  // crash can leave an active member with a reusable invite.
   try {
     tx(() => {
-      // Re-read inside the write lock: another process may have consumed the
-      // invite or taken the last seat between the page load and this request.
       const fresh = db()
         .prepare("SELECT * FROM invites WHERE code = ?")
         .get(inviteCode) as unknown as Invite | undefined;
@@ -119,10 +125,10 @@ export async function unifiedAuthAction(formData: FormData) {
 
       db()
         .prepare(
-          `INSERT INTO users (id, role, name, email, access_code_hash, status, created_at, updated_at)
-           VALUES (?, 'member', ?, ?, ?, 'active', ?, ?)`,
+          `INSERT INTO users (id, role, name, email, access_code_hash, password_hash, status, created_at, updated_at)
+           VALUES (?, 'member', ?, ?, NULL, ?, 'active', ?, ?)`,
         )
-        .run(userId, name, email, hashAccessCode(accessCode), now, now);
+        .run(userId, name, email, passwordHash, now, now);
 
       const consumed = db()
         .prepare(
@@ -136,16 +142,14 @@ export async function unifiedAuthAction(formData: FormData) {
   }
 
   event(userId, "invite.accepted", { invite: inviteCode, seats: settings.plan.seats });
-
-  const user = db().prepare("SELECT * FROM users WHERE id = ?").get(userId) as unknown as User;
   await createSession(userId);
-  await setAccessCodeFlash(accessCode);
-  await sendAccessCodeEmail(user, accessCode, await getBaseUrl()).catch(() => undefined);
   redirect("/dashboard?joined=1");
 }
 
 async function rateLimitAsync(prefix: string): Promise<boolean> {
-  return rateLimit(await attemptKey(prefix), 12, 15 * 60_000);
+  const perIp = rateLimit(await attemptKey(prefix), 12, 15 * 60_000);
+  const global = rateLimit(`${prefix}:global`, 150, 15 * 60_000);
+  return perIp && global;
 }
 
 export async function logoutAction() {

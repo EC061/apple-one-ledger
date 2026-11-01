@@ -201,20 +201,6 @@ export async function sendInviteEmail(input: { to: string; url: string; expiresA
   return sendMail({ to: input.to, subject, text, html, kind: "invite" });
 }
 
-export async function sendAccessCodeEmail(user: User, code: string, baseUrl: string) {
-  const subject = "Your family plan login code";
-  const text = `Hi ${user.name},\n\nYour login code is: ${code}\n\nKeep it private. Sign in at ${baseUrl}/login\n`;
-  const html = layout(
-    "Your login code",
-    p(`Hi ${esc(user.name)}, here is the code you will use to sign in.`) +
-      `<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:22px;letter-spacing:.12em;background:#f4f7f5;border:1px dashed #c9d6cf;border-radius:9px;padding:16px;text-align:center;margin:10px 0 18px;">${code}</div>` +
-      p("Keep this private. Anyone with this code can view and manage your share of the plan.") +
-      button(`${baseUrl}/login`, "Open the dashboard"),
-    "If you did not request this, you can ignore this email.",
-  );
-  return sendMail({ to: user.email, subject, text, html, kind: "access-code" });
-}
-
 export async function sendReminderEmail(input: {
   user: User;
   invoice: Invoice;

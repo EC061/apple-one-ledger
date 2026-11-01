@@ -11,5 +11,5 @@ export const dynamic = "force-dynamic";
  */
 export default async function JoinPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
-  redirect(`/login?code=${encodeURIComponent(code.toUpperCase())}`);
+  redirect(`/login?signup=1&code=${encodeURIComponent(code.toUpperCase())}`);
 }
