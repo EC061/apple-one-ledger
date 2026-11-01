@@ -233,7 +233,7 @@ export async function sendReminderEmail(input: {
     ) +
     details([
       ["Amount", formatMoney(invoice.amount_usd)],
-      ["In CNY (rate " + invoice.fx_rate.toFixed(4) + ")", "¥" + invoice.amount_cny.toFixed(2)],
+      ["CNY reference (rate " + invoice.fx_rate.toFixed(4) + ")", "¥" + invoice.amount_cny.toFixed(2)],
       ["Term", `${formatDate(invoice.period_start)} – ${formatDate(invoice.period_end)}`],
       ["Reference", invoice.reference],
     ]) +
@@ -244,7 +244,7 @@ export async function sendReminderEmail(input: {
     `Hi ${user.name},`,
     ``,
     overdue ? `Your payment is overdue.` : `Your payment is due on ${formatDate(invoice.due_date)}.`,
-    `Amount: ${formatMoney(invoice.amount_usd)} (¥${invoice.amount_cny.toFixed(2)} at ${invoice.fx_rate.toFixed(4)})`,
+    `Amount: ${formatMoney(invoice.amount_usd)} (CNY reference ¥${invoice.amount_cny.toFixed(2)} at ${invoice.fx_rate.toFixed(4)})`,
     `Term: ${formatDate(invoice.period_start)} – ${formatDate(invoice.period_end)}`,
     `Reference: ${invoice.reference}`,
     ``,

@@ -83,7 +83,12 @@
   .price .amount { margin-top: 8px; font-size: 64px; font-weight: 900; font-family: "Noto Serif CJK SC", serif; }
   .price .amount small { font-size: 24px; font-weight: 500; color: #7A9188; margin-left: 4px; }
   .price .renew { margin-top: 6px; font-size: 21px; color: #7A9188; }
-  .included { position: relative; z-index: 2; margin-top: 30px; }
+  .pricing-note {
+    position: relative; z-index: 2;
+    margin-top: 12px;
+    font-size: 21px; color: #6B8379; letter-spacing: .01em;
+  }
+  .included { position: relative; z-index: 2; margin-top: 24px; }
   .label { font-size: 24px; color: #7A9188; letter-spacing: .14em; font-weight: 700; }
   .chips { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 10px; }
   .chip {
@@ -148,6 +153,8 @@
       </div>
     </div>
 
+    <div class="pricing-note">年付 = 原价；季付/半年付续费更贵，因为换人、催款都要花时间。管理员也分摊一份。</div>
+
     <div class="included">
       <div class="label">一份费用，全部包含</div>
       <div class="chips">
@@ -165,7 +172,7 @@
       <div class="pay">
         <div class="label">怎么付都行</div>
         <div class="methods">微信 · 支付宝 · Venmo · Zelle</div>
-        <div class="note">USD 或 CNY，人民币按开票日汇率锁定</div>
+        <div class="note">USD 或 CNY，人民币按付款日汇率折算</div>
         <div class="trust">✓ 到期前 7 天邮件提醒<br>✓ 逾期 1 天通知管理员</div>
       </div>
       <div class="qrbox">
@@ -175,7 +182,7 @@
     </div>
 
     <div class="footer">
-      <span>6 席小家庭 · 管理员固定 1 席 · 成员 5 席</span>
+      <span>6 席小家庭 · 管理员固定 1 席 · 也分摊一份</span>
       <span>个人自用 · 非官方</span>
     </div>
   </div>

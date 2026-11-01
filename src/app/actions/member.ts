@@ -69,8 +69,12 @@ export async function submitPaymentAction(formData: FormData) {
   // value is still the untouched default — never when OCR or the member typed
   // an amount that happens to equal the other currency's default.
   const source = text(formData, "amountSource") || "default";
+  const rate = currency === "CNY" ? await getCurrentRate().catch(() => null) : null;
+  const fxRate = rate && rate.source !== "fallback" ? rate.rate : invoice.fx_rate;
+  const fxDate = rate && rate.source !== "fallback" ? rate.date : invoice.fx_date;
+  const cnyDue = Math.round(invoice.amount_usd * (fxRate || 1) * 100) / 100;
   if (source === "default" && currency === "CNY" && value === invoice.amount_usd) {
-    value = invoice.amount_cny;
+    value = cnyDue;
   }
   if (source === "default" && currency === "USD" && value === invoice.amount_cny) {
     value = invoice.amount_usd;
@@ -79,7 +83,11 @@ export async function submitPaymentAction(formData: FormData) {
   if (!Number.isFinite(value) || value <= 0) redirect(`/dashboard/pay/${invoiceId}?error=amount`);
 
   try {
-    submitInvoice(invoiceId, { method, currency, amount: value, txRef: txRef || undefined, note: note || undefined }, user.id);
+    submitInvoice(
+      invoiceId,
+      { method, currency, amount: value, txRef: txRef || undefined, note: note || undefined, fxRate, fxDate },
+      user.id,
+    );
   } catch (error) {
     const message = error instanceof BillingError ? error.message : "Could not submit the payment.";
     redirect(`/dashboard/pay/${invoiceId}?error=${encodeURIComponent(message)}`);

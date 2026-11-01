@@ -18,7 +18,7 @@
 
 ## Payments & mail
 - [x] WeChat / Alipay / Venmo / Zelle details + QR; only configured methods offered
-- [x] USD + CNY, locked rate, 8-char reference codes
+- [x] USD + CNY, payment-day rate, 8-char reference codes
 - [x] Member payment reports, admin approve/reject, partial-payment guard
 - [x] `confirmExistingPayment` avoids double-recording an approved transfer
 - [x] SMTP config + test, all message types, per-day/per-week dedupe on success only

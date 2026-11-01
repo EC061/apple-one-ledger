@@ -6,7 +6,7 @@ import { requireAdmin } from "@/lib/auth";
 import { db, event } from "@/lib/db";
 import { getSettings, patchSection } from "@/lib/settings";
 import { isPlan } from "@/lib/pricing";
-import { getCurrentRate } from "@/lib/fx";
+import { getCurrentRate, type CurrentRate } from "@/lib/fx";
 import { createInvoice, markInvoicePaid, openInvoiceFor } from "@/lib/billing";
 import { isPaymentMethod } from "@/lib/labels";
 import { saveProofUpload, saveQrUpload } from "@/lib/uploads";
@@ -36,8 +36,11 @@ export async function quickMarkPaidAction(formData: FormData) {
   if (!isPlan(plan) || !isPaymentMethod(method) || value <= 0) redirect("/quick?error=input");
 
   let invoice = openInvoiceFor(member.id);
+  let rate: CurrentRate | null = null;
+  if (!invoice || currency === "CNY") {
+    rate = await getCurrentRate().catch(() => null);
+  }
   if (!invoice) {
-    const rate = await getCurrentRate().catch(() => null);
     if (!rate || rate.source === "fallback") redirect("/quick?error=fx");
     try {
       invoice = createInvoice({
@@ -52,7 +55,11 @@ export async function quickMarkPaidAction(formData: FormData) {
     }
   }
 
-  if (currency === "CNY" && value === invoice.amount_usd) value = invoice.amount_cny;
+  const fxRate = currency === "CNY" ? (rate && rate.source !== "fallback" ? rate.rate : invoice.fx_rate) : invoice.fx_rate;
+  const fxDate = currency === "CNY" ? (rate && rate.source !== "fallback" ? rate.date : invoice.fx_date) : invoice.fx_date;
+  if (currency === "CNY" && value === invoice.amount_usd) {
+    value = Math.round(invoice.amount_usd * (fxRate || 1) * 100) / 100;
+  }
   if (currency === "USD" && value === invoice.amount_cny) value = invoice.amount_usd;
 
   let proofUrl: string | null = null;
@@ -75,6 +82,8 @@ export async function quickMarkPaidAction(formData: FormData) {
       source: "admin",
       actor: "admin",
       proofUrl,
+      fxRate,
+      fxDate,
     });
   } catch {
     redirect("/quick?error=payment");

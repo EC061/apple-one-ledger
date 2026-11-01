@@ -450,8 +450,13 @@ export async function adminMarkPaidAction(formData: FormData) {
   if (!invoice) redirect("/admin/invoices?error=missing");
 
   // The form seeds the USD amount; if the admin switched to CNY without
-  // editing the field, use the invoice's locked CNY figure.
-  if (currency === "CNY" && value === invoice.amount_usd) value = invoice.amount_cny;
+  // editing the field, convert at the rate for the day the payment is recorded.
+  const rate = currency === "CNY" ? await getCurrentRate().catch(() => null) : null;
+  const fxRate = rate && rate.source !== "fallback" ? rate.rate : invoice.fx_rate;
+  const fxDate = rate && rate.source !== "fallback" ? rate.date : invoice.fx_date;
+  if (currency === "CNY" && value === invoice.amount_usd) {
+    value = Math.round(invoice.amount_usd * (fxRate || 1) * 100) / 100;
+  }
 
   try {
     markInvoicePaid({
@@ -464,6 +469,8 @@ export async function adminMarkPaidAction(formData: FormData) {
       actor: "admin",
       note: note || null,
       allowPartial: flag(formData, "partial"),
+      fxRate,
+      fxDate,
     });
   } catch (error) {
     const message = error instanceof BillingError ? error.message : "Could not mark the invoice paid.";

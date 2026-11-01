@@ -145,6 +145,9 @@ export interface MarkPaidInput {
   status?: "pending" | "confirmed";
   /** Allow a payment smaller than the invoice (admin decision only). */
   allowPartial?: boolean;
+  /** USD→CNY rate on the day the payment is recorded. Defaults to the invoice reference rate. */
+  fxRate?: number;
+  fxDate?: string;
 }
 
 export function markInvoicePaid(input: MarkPaidInput): Invoice {
@@ -153,9 +156,12 @@ export function markInvoicePaid(input: MarkPaidInput): Invoice {
   if (invoice.status === "paid") throw new BillingError("Invoice is already paid.");
   if (invoice.status === "void") throw new BillingError("Invoice was voided.");
 
+  const fxRate =
+    input.currency === "CNY" ? (input.fxRate && input.fxRate > 0 ? input.fxRate : invoice.fx_rate || 1) : invoice.fx_rate;
+  const fxDate = input.currency === "CNY" ? input.fxDate || invoice.fx_date : invoice.fx_date;
   const amountUsd =
     input.currency === "CNY"
-      ? Math.round((input.amount / (invoice.fx_rate || 1)) * 100) / 100
+      ? Math.round((input.amount / (fxRate || 1)) * 100) / 100
       : input.amount;
 
   const tolerance = getSettings().app.paymentToleranceUsd;
@@ -181,8 +187,8 @@ export function markInvoicePaid(input: MarkPaidInput): Invoice {
         input.currency,
         input.amount,
         amountUsd,
-        invoice.fx_rate,
-        invoice.fx_date,
+        fxRate,
+        fxDate,
         input.txRef?.trim() || null,
         input.source,
         input.raw === undefined ? null : JSON.stringify(input.raw),
@@ -192,13 +198,25 @@ export function markInvoicePaid(input: MarkPaidInput): Invoice {
         input.status === "pending" ? null : at,
       );
 
+    const cnyAmount = input.currency === "CNY" ? Math.round(input.amount * 100) / 100 : null;
     const update = db()
       .prepare(
         `UPDATE invoices SET status = 'paid', paid_at = ?, method = ?, payer_note = COALESCE(?, payer_note),
-           submitted_at = COALESCE(submitted_at, ?), verified_by = ?
+           submitted_at = COALESCE(submitted_at, ?), verified_by = ?,
+           fx_rate = COALESCE(?, fx_rate), fx_date = COALESCE(?, fx_date), amount_cny = COALESCE(?, amount_cny)
          WHERE id = ? AND status IN ('awaiting_payment','submitted','overdue')`,
       )
-      .run(at, input.method, input.note ?? null, at, input.actor, invoice.id);
+      .run(
+        at,
+        input.method,
+        input.note ?? null,
+        at,
+        input.actor,
+        input.currency === "CNY" ? fxRate : null,
+        input.currency === "CNY" ? fxDate : null,
+        cnyAmount,
+        invoice.id,
+      );
     if (Number(update.changes) !== 1) {
       throw new BillingError("This invoice is no longer payable (already paid or void).");
     }
@@ -220,7 +238,16 @@ export function markInvoicePaid(input: MarkPaidInput): Invoice {
 
 export function submitInvoice(
   invoiceId: string,
-  input: { method: PaymentMethod; currency: "USD" | "CNY"; amount: number; txRef?: string; note?: string },
+  input: {
+    method: PaymentMethod;
+    currency: "USD" | "CNY";
+    amount: number;
+    txRef?: string;
+    note?: string;
+    /** USD→CNY rate on the day the member reports the payment. */
+    fxRate?: number;
+    fxDate?: string;
+  },
   actor: string | null,
 ) {
   const invoice = db().prepare("SELECT * FROM invoices WHERE id = ?").get(invoiceId) as unknown as Invoice | undefined;
@@ -239,8 +266,11 @@ export function submitInvoice(
       throw new BillingError("This invoice is no longer awaiting a payment report.");
     }
 
+    const fxRate =
+      input.currency === "CNY" ? (input.fxRate && input.fxRate > 0 ? input.fxRate : invoice.fx_rate || 1) : invoice.fx_rate;
+    const fxDate = input.currency === "CNY" ? input.fxDate || invoice.fx_date : invoice.fx_date;
     const amountUsd =
-      input.currency === "CNY" ? Math.round((input.amount / (invoice.fx_rate || 1)) * 100) / 100 : input.amount;
+      input.currency === "CNY" ? Math.round((input.amount / (fxRate || 1)) * 100) / 100 : input.amount;
     db()
       .prepare(
         `INSERT INTO payments (id, invoice_id, method, currency, amount, amount_usd, fx_rate, fx_date, tx_ref, source, raw, status, created_at)
@@ -253,8 +283,8 @@ export function submitInvoice(
         input.currency,
         input.amount,
         amountUsd,
-        invoice.fx_rate,
-        invoice.fx_date,
+        fxRate,
+        fxDate,
         input.txRef?.trim() || null,
         nowIso(),
       );
@@ -327,12 +357,24 @@ export function confirmExistingPayment(
       .run(at, paymentId);
     if (Number(confirmed.changes) !== 1) throw new BillingError("This payment was already handled.");
 
+    const paymentCny = payment.currency === "CNY" ? Math.round(payment.amount * 100) / 100 : null;
     const updated = db()
       .prepare(
         `UPDATE invoices SET status = 'paid', paid_at = ?, method = ?, submitted_at = COALESCE(submitted_at, ?),
-           verified_by = ? WHERE id = ? AND status IN ('awaiting_payment','submitted','overdue')`,
+           verified_by = ?, fx_rate = COALESCE(?, fx_rate), fx_date = COALESCE(?, fx_date),
+           amount_cny = COALESCE(?, amount_cny)
+         WHERE id = ? AND status IN ('awaiting_payment','submitted','overdue')`,
       )
-      .run(at, payment.method, at, actor, invoice.id);
+      .run(
+        at,
+        payment.method,
+        at,
+        actor,
+        payment.currency === "CNY" ? payment.fx_rate : null,
+        payment.currency === "CNY" ? payment.fx_date : null,
+        paymentCny,
+        invoice.id,
+      );
     if (Number(updated.changes) !== 1) throw new BillingError("This invoice is no longer payable.");
 
     refreshPaidThrough(invoice.user_id);

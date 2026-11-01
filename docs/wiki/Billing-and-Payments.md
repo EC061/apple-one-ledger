@@ -33,9 +33,11 @@ approving a reported amount below the invoice.
 
 ## CNY
 
-Each invoice locks the USD→CNY rate at issue time, so the CNY figure never moves. Rates come from
-frankfurter.app (ECB, no key) with open.er-api.com as fallback. A manual rate can be set in
-Settings for offline deployments or to match the payment app's own spread.
+CNY is converted at the USD→CNY rate on the **day the payment is recorded** — joining, renewing
+or paying late all use that day's rate. The invoice shows a CNY reference amount at issue time;
+the payment row stores the rate and date actually used, and the paid invoice is updated to match.
+Rates come from frankfurter.app (ECB, no key) with open.er-api.com as fallback. A manual rate can
+be set in Settings for offline deployments or to match the payment app's own spread.
 
 ## Renewals and removal
 

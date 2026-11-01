@@ -348,7 +348,7 @@ export async function FxCard() {
         <div className="card-head">
           <div>
             <h2>Exchange rate</h2>
-            <span className="muted small">CNY invoices lock the USD→CNY rate at issue time.</span>
+            <span className="muted small">CNY payments use the USD→CNY rate on the payment day.</span>
           </div>
         </div>
         <div className="card-body stack">

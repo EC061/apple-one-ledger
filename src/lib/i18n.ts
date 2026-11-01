@@ -60,7 +60,7 @@ export const dict = {
     rules: [
       "The first term is an introductory flat price. Every later term renews at the price on this page.",
       "Coverage runs for 3, 6 or 12 months and starts the day after your current paid-through date.",
-      "CNY amounts lock the USD→CNY rate on the day the invoice is issued, so they do not move.",
+      "CNY uses the USD→CNY rate on the day you pay. The invoice shows a reference amount; the payment-day rate is final.",
       "Payment is due within {dueDays} days. One reminder goes to you and the admin {advanceDays} days before it is due.",
       "One day after the due date the admin is notified to remove the seat or contact you.",
     ],
@@ -111,7 +111,7 @@ export const dict = {
     rules: [
       "首期为优惠固定价，之后每一期按本页所示续费价计费。",
       "有效期 3、6 或 12 个月，从当前有效期的次日开始计算。",
-      "人民币金额按开票当天的美元兑人民币汇率锁定，之后不再变动。",
+      "人民币按付款当天的美元兑人民币汇率折算；账单上的人民币金额为参考，付款日汇率为准。",
       "账单开出后 {dueDays} 天内付款；到期前 {advanceDays} 天会向你和管理员各发送一次提醒。",
       "逾期一天后会通知管理员移除席位或联系你。",
     ],
