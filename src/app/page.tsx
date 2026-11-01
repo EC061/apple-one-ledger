@@ -33,8 +33,11 @@ export default async function HomePage() {
           <div className="topbar-right">
             <LanguageToggle lang={lang} />
             <ThemeToggle theme={theme} labels={{ light: t.themeToLight, dark: t.themeToDark }} />
-            <Link href="/login" className="btn btn-primary btn-sm">
+            <Link href="/login" className="btn btn-ghost btn-sm">
               {t.signIn}
+            </Link>
+            <Link href="/signup" className="btn btn-primary btn-sm">
+              {t.signUp}
             </Link>
           </div>
         </div>
@@ -76,7 +79,7 @@ function Hero({ t, seats, planName, quota }: { t: Copy; seats: number; planName:
           <h1>{fill(t.h1, { seats })}</h1>
           <p className="lede">{fill(t.lede, { plan: planName, seats })}</p>
           <div className="row">
-            <Link href="/login?signup=1" className="btn btn-primary">
+            <Link href="/signup" className="btn btn-primary">
               {t.signUp}
             </Link>
             <Link href="/login" className="btn btn-secondary">

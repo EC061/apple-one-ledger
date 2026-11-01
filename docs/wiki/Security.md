@@ -2,7 +2,7 @@
 
 ## Authentication
 
-Accounts sign in with **email + password** on `/login`. Passwords are hashed with scrypt and a
+Accounts sign in with **email + password** on `/login`; accounts are created on `/signup`. Passwords are hashed with scrypt and a
 per-password salt; sessions are random 256-bit tokens stored hashed, `HttpOnly`, `SameSite=Lax`,
 `Secure` on HTTPS, 30 days by default.
 

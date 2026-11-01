@@ -26,8 +26,9 @@ docker compose pull
 docker compose up -d
 ```
 
-Open `http://127.0.0.1:18900/login`, choose **Create an account**, and use `ADMIN_REG_CODE`
-with your name, email and a 12+ character password. Then create invites under **Invites**. The compose file binds to loopback on purpose — put Caddy/nginx in
+Open `http://127.0.0.1:18900/signup` and use `ADMIN_REG_CODE` with your name, email and a 12+
+character password. Sign in afterwards at `/login` with that email and password. Then create
+invites under **Invites**. The compose file binds to loopback on purpose — put Caddy/nginx in
 front for HTTPS.
 
 Local build: `docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build`

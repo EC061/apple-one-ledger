@@ -67,13 +67,13 @@ export async function signupAction(formData: FormData) {
   const email = text(formData, "email").toLowerCase();
   const password = text(formData, "password");
 
-  if (!(await rateLimitAsync("signup"))) redirect("/login?error=rate");
-  if (!code) redirect("/login?error=empty");
-  if (!EMAIL.test(email)) redirect("/login?error=email");
-  if (name.length < 2 || name.length > 60) redirect("/login?error=name");
+  if (!(await rateLimitAsync("signup"))) redirect("/signup?error=rate");
+  if (!code) redirect("/signup?error=empty");
+  if (!EMAIL.test(email)) redirect("/signup?error=email");
+  if (name.length < 2 || name.length > 60) redirect("/signup?error=name");
 
   const weak = passwordProblem(password);
-  if (weak) redirect("/login?error=weak");
+  if (weak) redirect("/signup?error=weak");
 
   // Admin account creation / password recovery.
   if (adminCodeConfigured() && verifyAdminCode(code)) {
@@ -82,7 +82,7 @@ export async function signupAction(formData: FormData) {
       admin = createAdmin(email, name, password);
       event(admin.id, "admin.created", { email });
     } else if (admin.email.toLowerCase() !== email) {
-      redirect("/login?error=invalid");
+      redirect("/signup?error=invalid");
     } else {
       db()
         .prepare("UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?")
@@ -100,12 +100,12 @@ export async function signupAction(formData: FormData) {
     .prepare("SELECT * FROM invites WHERE code = ?")
     .get(inviteCode) as unknown as Invite | undefined;
 
-  if (!invite || invite.revoked_at) redirect("/login?error=invalid");
-  if (invite.used_at) redirect("/login?error=used");
+  if (!invite || invite.revoked_at) redirect("/signup?error=invalid");
+  if (invite.used_at) redirect("/signup?error=used");
 
   const settings = getSettings();
   if (invite.expires_at && invite.expires_at < today(settings.plan.timezone)) {
-    redirect("/login?error=expired");
+    redirect("/signup?error=expired");
   }
 
   const userId = newId();
@@ -138,7 +138,7 @@ export async function signupAction(formData: FormData) {
       if (Number(consumed.changes) !== 1) throw new Error("used");
     });
   } catch (error) {
-    redirect(`/login?error=${encodeURIComponent((error as Error).message)}`);
+    redirect(`/signup?error=${encodeURIComponent((error as Error).message)}`);
   }
 
   event(userId, "invite.accepted", { invite: inviteCode, seats: settings.plan.seats });
