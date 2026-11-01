@@ -1,7 +1,13 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { loginAction } from "@/app/actions/auth";
 import { Notice } from "@/components/ui";
 import SubmitButton from "@/components/SubmitButton";
+
+export const metadata: Metadata = {
+  title: "Sign in",
+  description: "Sign in to the family plan ledger with your access code.",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +77,7 @@ export default async function LoginPage({
         </div>
         <div className="row-between small" style={{ marginTop: 10 }}>
           <Link href="/">← Back to overview</Link>
+          <Link href="/about">How it works</Link>
           <Link href="/admin/login">Admin sign in</Link>
         </div>
       </div>

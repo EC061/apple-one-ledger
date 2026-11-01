@@ -7,8 +7,6 @@ import type { Invoice, Payment, PaymentMethod, Plan, User } from "./types";
 export class BillingError extends Error {}
 
 /** Rounding/transfer-fee tolerance for matching a payment to an invoice. */
-export const PAYMENT_TOLERANCE_USD = 0.5;
-
 export function openInvoiceFor(userId: string): Invoice | null {
   return (
     (db()
@@ -158,7 +156,8 @@ export function markInvoicePaid(input: MarkPaidInput): Invoice {
       ? Math.round((input.amount / (invoice.fx_rate || 1)) * 100) / 100
       : input.amount;
 
-  if (!input.allowPartial && amountUsd + PAYMENT_TOLERANCE_USD < invoice.amount_usd) {
+  const tolerance = getSettings().app.paymentToleranceUsd;
+  if (!input.allowPartial && amountUsd + tolerance < invoice.amount_usd) {
     throw new BillingError(
       `Received ${amountUsd.toFixed(2)} USD against an invoice of ${invoice.amount_usd.toFixed(2)} USD. ` +
         "Tick “accept partial payment” if this is intentional.",
@@ -209,7 +208,7 @@ export function markInvoicePaid(input: MarkPaidInput): Invoice {
       currency: input.currency,
       method: input.method,
       source: input.source,
-      toleranceUsd: PAYMENT_TOLERANCE_USD,
+      toleranceUsd: tolerance,
     });
 
     return db().prepare("SELECT * FROM invoices WHERE id = ?").get(invoice.id) as unknown as Invoice;
@@ -311,7 +310,7 @@ export function confirmExistingPayment(
 
   const settings = getSettings();
   const amountUsd = Number(payment.amount_usd ?? 0);
-  if (!allowPartial && amountUsd + PAYMENT_TOLERANCE_USD < invoice.amount_usd) {
+  if (!allowPartial && amountUsd + settings.app.paymentToleranceUsd < invoice.amount_usd) {
     throw new BillingError(
       `Recorded ${amountUsd.toFixed(2)} USD against ${invoice.amount_usd.toFixed(2)} USD. ` +
         "Tick “accept partial payment” to approve it anyway.",

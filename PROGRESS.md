@@ -36,7 +36,9 @@
 - [x] Join / login / admin login
 - [x] Dashboard: coverage, balance, term, storage, plan picker, payment, history
 - [x] Payment page: both amounts, reference, next-renewal price, method details
-- [x] Admin: overview, members, invoices, invites, settings, email log
+- [x] Admin: overview, pool, members, invoices, invites, settings, email log
+- [x] Public /about page with rules, pricing, methods, reminders and seat policy
+- [x] Session lifetime, scheduler interval and payment tolerance editable in admin
 - [x] Responsive CSS, focus rings, alert roles, no-JS baseline
 
 ## Deploy

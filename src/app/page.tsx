@@ -171,6 +171,7 @@ export default async function HomePage() {
             {plan.name} · {plan.seats} seats · self-hosted
           </span>
           <span className="row" style={{ gap: 14 }}>
+            <Link href="/about">How it works</Link>
             <Link href="/login">Sign in</Link>
             <Link href="/admin/login">Admin</Link>
           </span>
