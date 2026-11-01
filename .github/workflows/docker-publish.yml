@@ -77,8 +77,10 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # GHCR registry cache survives runner resets and is shared between
+          # the amd64 and arm64 builds (mode=max also caches intermediate stages).
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max,image-manifest=true,oci-mediatypes=true
           provenance: true
           sbom: true
 

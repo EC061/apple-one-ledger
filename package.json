@@ -18,10 +18,10 @@
     "imapflow": "^1.0.164",
     "mailparser": "^3.7.4",
     "next": "^15.5.0",
-    "nodemailer": "^7.0.5",
+    "nodemailer": "^10.3.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "zod": "^3.25.0"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/mailparser": "^3.4.5",
@@ -31,5 +31,8 @@
     "@types/react-dom": "^19.1.0",
     "react-doctor": "^0.9.21",
     "typescript": "^5.9.0"
+  },
+  "overrides": {
+    "postcss": "^8.5.32"
   }
 }

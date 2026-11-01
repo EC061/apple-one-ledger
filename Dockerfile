@@ -1,20 +1,25 @@
 # syntax=docker/dockerfile:1
 
 # ---------- dependencies ----------
-FROM node:24-bookworm-slim AS deps
+# Build on the native build platform: the app has no native modules (node:sqlite
+# is built in), so the same JS output serves amd64 and arm64. This avoids slow
+# QEMU builds for the arm64 image.
+FROM --platform=$BUILDPLATFORM node:24-bookworm-slim AS deps
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --no-audit --no-fund --prefer-offline
 
 # ---------- build ----------
-FROM node:24-bookworm-slim AS builder
+FROM --platform=$BUILDPLATFORM node:24-bookworm-slim AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # The build reads no database: every page that touches SQLite is dynamic.
-RUN npm run build
+RUN --mount=type=cache,target=/app/.next/cache \
+    npm run build
 
 # ---------- runtime ----------
 FROM node:24-bookworm-slim AS runner
