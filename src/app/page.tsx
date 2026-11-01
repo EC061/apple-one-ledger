@@ -1,9 +1,15 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { formatMoney } from "@/lib/dates";
 import { PLANS, PLAN_ORDER, perSeatMonthly } from "@/lib/pricing";
 import { Brand } from "@/components/ui";
+
+export const metadata: Metadata = {
+  title: "Shared family plan",
+  description: "Cost-sharing ledger for a shared Apple One Premier + AppleCare One family plan.",
+};
 
 export const dynamic = "force-dynamic";
 
