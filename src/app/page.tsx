@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getSettings } from "@/lib/settings";
-import { formatMoney } from "@/lib/dates";
+import { openInviteCount, seatCapacity, seatsUsed } from "@/lib/auth";
+import { formatMoney, today } from "@/lib/dates";
 import { PLANS, PLAN_ORDER, perSeatMonthly } from "@/lib/pricing";
 import { dict, fill, getLang, type Copy } from "@/lib/i18n";
 import { getTheme } from "@/lib/theme";
@@ -22,6 +23,8 @@ export default async function HomePage() {
   const settings = getSettings();
   const t = dict[lang];
   const seatCost = perSeatMonthly(settings.pricing, settings.plan.seats);
+  const day = today(settings.plan.timezone);
+  const seatsLeft = Math.max(seatCapacity() - seatsUsed() - openInviteCount(day), 0);
 
   return (
     <div className="page">
@@ -42,7 +45,7 @@ export default async function HomePage() {
       </header>
 
       <main className="grow">
-        <Hero t={t} seats={settings.plan.seats} planName={settings.plan.name} />
+        <Hero t={t} seats={settings.plan.seats} seatsLeft={seatsLeft} planName={settings.plan.name} />
         <div className="container stack" style={{ paddingBottom: 56 }}>
           <ServicesSection t={t} services={settings.plan.services} seats={settings.plan.seats} />
           <PricingSection t={t} pricing={settings.pricing} />
@@ -54,7 +57,7 @@ export default async function HomePage() {
             advanceDays={settings.reminders.advanceDays}
           />
           <PaymentsSection t={t} />
-          <InfoCards t={t} seats={settings.plan.seats} />
+          <InfoCards t={t} seats={settings.plan.seats} seatsLeft={seatsLeft} />
         </div>
       </main>
 
@@ -73,7 +76,17 @@ export default async function HomePage() {
   );
 }
 
-function Hero({ t, seats, planName }: { t: Copy; seats: number; planName: string }) {
+function Hero({
+  t,
+  seats,
+  seatsLeft,
+  planName,
+}: {
+  t: Copy;
+  seats: number;
+  seatsLeft: number;
+  planName: string;
+}) {
   return (
     <section className="hero">
       <div className="container hero-grid">
@@ -81,6 +94,11 @@ function Hero({ t, seats, planName }: { t: Copy; seats: number; planName: string
           <span className="eyebrow">{fill(t.eyebrow, { seats })}</span>
           <h1>{fill(t.h1, { seats })}</h1>
           <p className="lede">{fill(t.lede, { plan: planName, seats })}</p>
+          <p>
+            <span className={`badge ${seatsLeft > 0 ? "badge-paid" : "badge-void"}`}>
+              {fill(t.seatsLeft, { n: seatsLeft, seats })}
+            </span>
+          </p>
           <div className="row">
             <Link href="/signup" className="btn btn-primary">
               {t.signUp}
@@ -297,7 +315,7 @@ function PaymentsSection({ t }: { t: Copy }) {
   );
 }
 
-function InfoCards({ t, seats }: { t: Copy; seats: number }) {
+function InfoCards({ t, seats, seatsLeft }: { t: Copy; seats: number; seatsLeft: number }) {
   return (
     <section className="grid grid-3">
       <div className="card card-pad">
@@ -316,6 +334,9 @@ function InfoCards({ t, seats }: { t: Copy; seats: number }) {
         <h3>{t.accessTitle}</h3>
         <p className="muted small" style={{ marginBottom: 0 }}>
           {fill(t.accessText, { seats })}
+        </p>
+        <p className="small strong" style={{ margin: "8px 0 0" }}>
+          {fill(t.seatsLeft, { n: seatsLeft, seats })}
         </p>
       </div>
     </section>

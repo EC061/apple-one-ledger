@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { db, newId, nowIso } from "./db";
 import { getSettings } from "./settings";
 import { isHttps, requestMeta } from "./url";
+import { today } from "./dates";
 import type { User } from "./types";
 
 export const SESSION_COOKIE = "a1_session";
@@ -151,6 +152,17 @@ export function seatsUsed(): number {
 
 export function seatCapacity(): number {
   return Math.max(getSettings().plan.seats, 1);
+}
+
+/** Unused, unrevoked, unexpired invite links. Each one reserves a seat. */
+export function openInviteCount(day = today(getSettings().plan.timezone)): number {
+  const row = db()
+    .prepare(
+      "SELECT COUNT(*) AS n FROM invites " +
+        "WHERE used_at IS NULL AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at >= ?)",
+    )
+    .get(day) as { n: number };
+  return Number(row.n);
 }
 
 /** First admin account, if one has been claimed yet. */

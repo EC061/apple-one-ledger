@@ -43,4 +43,7 @@ Everything else is stored in SQLite and editable at **Admin → Settings**:
 - The installed PWA starts at **`/quick`**: a mobile control panel with per-member mark-paid,
   proof upload and WeChat/Alipay QR upload. Members are redirected to their dashboard.
 - The admin seat is reserved and never billed; it still counts toward the seat limit.
+- The public page's seat counter is `plan seats − active seats − open invite links`. Creating an
+  invite reserves a seat; revoking it or letting it expire releases the seat. Invite creation is
+  blocked when no seat is open.
 - Timezone affects "today", due dates and reminder windows.
