@@ -50,7 +50,9 @@ export default async function SettingsPage({
         <Notice tone="error">
           {params.error === "from-email"
             ? "Enter a valid From email address."
-            : "That change could not be saved. Check the server log for the exact error."}
+            : params.error === "qr"
+              ? "QR upload must be a PNG, JPG or WebP under 5 MB."
+              : "That change could not be saved. Check the server log for the exact error."}
         </Notice>
       ) : null}
 

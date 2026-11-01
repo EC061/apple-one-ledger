@@ -177,14 +177,48 @@ export async function PaymentDetailsCard() {
                 <input id="alipayId" name="alipayId" className="input" defaultValue={payments.alipayId} />
               </div>
               <div className="field">
+                <label className="label" htmlFor="wechatQrFile">
+                  Upload WeChat QR (camera or photo)
+                </label>
+                <input
+                  id="wechatQrFile"
+                  name="wechatQrFile"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="input"
+                />
+                <span className="hint">PNG/JPG/WebP, up to 5 MB. Replaces the URL below.</span>
+                {payments.wechatQrUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={payments.wechatQrUrl} alt="Current WeChat QR" className="qr" style={{ maxWidth: 120 }} />
+                ) : null}
+              </div>
+              <div className="field">
+                <label className="label" htmlFor="alipayQrFile">
+                  Upload Alipay QR (camera or photo)
+                </label>
+                <input
+                  id="alipayQrFile"
+                  name="alipayQrFile"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="input"
+                />
+                <span className="hint">PNG/JPG/WebP, up to 5 MB. Replaces the URL below.</span>
+                {payments.alipayQrUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={payments.alipayQrUrl} alt="Current Alipay QR" className="qr" style={{ maxWidth: 120 }} />
+                ) : null}
+              </div>
+              <div className="field">
                 <label className="label" htmlFor="wechatQrUrl">
-                  WeChat QR image URL
+                  WeChat QR image URL (optional)
                 </label>
                 <input id="wechatQrUrl" name="wechatQrUrl" className="input" defaultValue={payments.wechatQrUrl} placeholder="https://…" />
               </div>
               <div className="field">
                 <label className="label" htmlFor="alipayQrUrl">
-                  Alipay QR image URL
+                  Alipay QR image URL (optional)
                 </label>
                 <input id="alipayQrUrl" name="alipayQrUrl" className="input" defaultValue={payments.alipayQrUrl} placeholder="https://…" />
               </div>

@@ -16,7 +16,7 @@ Everything else is stored in SQLite and editable at **Admin → Settings**:
 
 - **Plan & pricing** — plan name, timezone (default `America/New_York`), seats, grace days,
   payment due window, monthly cost, first-term and renewal prices, service list.
-- **Payment details** — WeChat / Alipay IDs and QR URLs, Venmo handle, Zelle email, instructions.
+- **Payment details** — WeChat / Alipay IDs, QR upload (camera/photo, stored in `/data/uploads`) or URL, Venmo handle, Zelle email, instructions.
 - **SMTP** — host, port, TLS, user, password, from; test send.
 - **Exchange rate** — automatic (frankfurter/ECB) or manual; refresh now.
 - **Reminders** — the single advance notice (7 days) and the single late admin notice (1 day).
@@ -38,4 +38,6 @@ Everything else is stored in SQLite and editable at **Admin → Settings**:
   **Members → Set password** (that also signs them out everywhere). The admin can recover their
   own account by using `ADMIN_REG_CODE` with the same email on `/signup`.
 - Removing a seat revokes sessions, voids open invoices and frees the seat; history stays.
+- **Preview dashboard** in Members (or Pool → Preview) opens a read-only copy of that member's
+  dashboard, including coverage, invoices, term prices and storage.
 - Timezone affects "today", due dates and reminder windows.
