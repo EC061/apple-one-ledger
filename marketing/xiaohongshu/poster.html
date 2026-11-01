@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1440px; }
+  body {
+    font-family: "Noto Sans CJK SC", "PingFang SC", sans-serif;
+    background: #F4EFE4;
+    color: #10382C;
+  }
+  .poster {
+    position: relative;
+    width: 1080px;
+    height: 1440px;
+    padding: 62px 70px 46px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .poster::before {
+    content: "";
+    position: absolute;
+    width: 620px; height: 620px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, rgba(11,122,90,.16), rgba(11,122,90,0));
+    top: -240px; right: -200px;
+  }
+  .poster::after {
+    content: "";
+    position: absolute;
+    width: 520px; height: 520px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%, rgba(200,155,90,.20), rgba(200,155,90,0));
+    bottom: -260px; left: -180px;
+  }
+  .top { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; }
+  .pill {
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: 999px;
+    background: #10382C;
+    color: #F4EFE4;
+    font-size: 25px;
+    letter-spacing: .08em;
+  }
+  .url { font-size: 24px; color: #4E6B60; letter-spacing: .02em; }
+  .hero { position: relative; z-index: 2; margin-top: 44px; }
+  .kicker {
+    font-size: 30px; color: #0B7A5A; letter-spacing: .18em; font-weight: 700;
+  }
+  h1 {
+    margin-top: 16px;
+    font-family: "Noto Serif CJK SC", serif;
+    font-size: 86px;
+    line-height: 1.06;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+  }
+  h1 em { font-style: normal; color: #0B7A5A; }
+  h1 .plus { font-size: 56px; color: #C89B5A; vertical-align: 10px; margin: 0 6px; }
+  h1 .care { font-size: 66px; display: inline-block; margin-top: 6px; }
+  .lede { margin-top: 20px; font-size: 30px; color: #4E6B60; letter-spacing: .02em; }
+  .per {
+    position: relative; z-index: 2;
+    margin-top: 28px;
+    display: flex; align-items: baseline; gap: 12px;
+    font-size: 30px; color: #4E6B60;
+  }
+  .per strong {
+    font-size: 76px; color: #10382C; font-family: "Noto Serif CJK SC", serif;
+    letter-spacing: -.02em;
+  }
+  .per span { font-size: 22px; color: #7A9188; }
+  .prices { position: relative; z-index: 2; margin-top: 26px; display: flex; gap: 18px; }
+  .price {
+    flex: 1; background: #FFFDF7; border: 1px solid rgba(16,56,44,.10);
+    border-radius: 26px; padding: 24px 24px 22px;
+    box-shadow: 0 10px 24px rgba(16,56,44,.05);
+  }
+  .price .term { font-size: 24px; color: #0B7A5A; font-weight: 700; letter-spacing: .08em; }
+  .price .amount { margin-top: 8px; font-size: 64px; font-weight: 900; font-family: "Noto Serif CJK SC", serif; }
+  .price .amount small { font-size: 24px; font-weight: 500; color: #7A9188; margin-left: 4px; }
+  .price .renew { margin-top: 6px; font-size: 21px; color: #7A9188; }
+  .included { position: relative; z-index: 2; margin-top: 30px; }
+  .label { font-size: 24px; color: #7A9188; letter-spacing: .14em; font-weight: 700; }
+  .chips { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 10px; }
+  .chip {
+    padding: 10px 18px; border-radius: 999px; background: rgba(11,122,90,.08);
+    color: #0B5A43; font-size: 24px; border: 1px solid rgba(11,122,90,.14);
+  }
+  .bottom {
+    position: relative; z-index: 2;
+    margin-top: auto;
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 30px;
+  }
+  .pay .methods { margin-top: 12px; font-size: 36px; font-weight: 800; letter-spacing: .01em; }
+  .pay .note { margin-top: 10px; font-size: 23px; color: #6B8379; }
+  .trust { margin-top: 16px; font-size: 23px; color: #0B5A43; line-height: 1.7; }
+  .qrbox {
+    flex: none; text-align: center;
+    background: #FFFDF7; border: 1px solid rgba(16,56,44,.10);
+    border-radius: 28px; padding: 16px 16px 12px;
+    box-shadow: 0 10px 24px rgba(16,56,44,.06);
+  }
+  .qrbox img { width: 168px; height: 168px; display: block; }
+  .qrbox div { margin-top: 8px; font-size: 20px; color: #4E6B60; }
+  .footer {
+    position: relative; z-index: 2;
+    margin-top: 22px; padding-top: 18px;
+    border-top: 1px solid rgba(16,56,44,.12);
+    display: flex; justify-content: space-between;
+    font-size: 20px; color: #7A9188;
+  }
+</style>
+</head>
+<body>
+  <div class="poster">
+    <div class="top">
+      <span class="pill">家庭拼车 · 邀请制</span>
+      <span class="url">apple-one.679381.xyz</span>
+    </div>
+
+    <div class="hero">
+      <div class="kicker">一份订阅，六个人分</div>
+      <h1>Apple One <em>Premier</em><br><span class="plus">+</span><span class="care">AppleCare One</span></h1>
+      <p class="lede">不是代充：各自 Apple ID 加入，账本公开。</p>
+    </div>
+
+    <div class="per">人均 <strong>$14.99</strong> / 月 <span>按 $89.94 ÷ 6 计算</span></div>
+
+    <div class="prices">
+      <div class="price">
+        <div class="term">季付</div>
+        <div class="amount">$45<small>首期</small></div>
+        <div class="renew">续费 $51 / 季</div>
+      </div>
+      <div class="price">
+        <div class="term">半年付</div>
+        <div class="amount">$90<small>首期</small></div>
+        <div class="renew">续费 $96 / 半年</div>
+      </div>
+      <div class="price">
+        <div class="term">年付</div>
+        <div class="amount">$180<small>首期</small></div>
+        <div class="renew">续费 $180 / 年</div>
+      </div>
+    </div>
+
+    <div class="included">
+      <div class="label">一份费用，全部包含</div>
+      <div class="chips">
+        <span class="chip">Apple Music</span>
+        <span class="chip">Apple TV+</span>
+        <span class="chip">Apple Arcade</span>
+        <span class="chip">Apple News+</span>
+        <span class="chip">Apple Fitness+</span>
+        <span class="chip">iCloud+ 2TB</span>
+        <span class="chip">AppleCare One</span>
+      </div>
+    </div>
+
+    <div class="bottom">
+      <div class="pay">
+        <div class="label">怎么付都行</div>
+        <div class="methods">微信 · 支付宝 · Venmo · Zelle</div>
+        <div class="note">USD 或 CNY，人民币按开票日汇率锁定</div>
+        <div class="trust">✓ 到期前 7 天邮件提醒<br>✓ 逾期 1 天通知管理员</div>
+      </div>
+      <div class="qrbox">
+        <img src="qr.png" alt="扫码访问 apple-one.679381.xyz">
+        <div>扫码查看余位</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>6 席小家庭 · 管理员固定 1 席 · 成员 5 席</span>
+      <span>个人自用 · 非官方</span>
+    </div>
+  </div>
+</body>
+</html>
