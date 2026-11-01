@@ -1,7 +1,7 @@
 # Apple One Family Ledger
 
 Invite-only cost-sharing ledger for **one** family sharing **Apple One Premier + AppleCare One**.
-Six seats, quarterly/half-year/annual terms, USD or CNY, email reminders and a storage fair-share view.
+Six seats, quarterly/half-year/annual terms, USD or CNY, and email reminders.
 
 ## What it does
 
@@ -10,7 +10,7 @@ Six seats, quarterly/half-year/annual terms, USD or CNY, email reminders and a s
 - **Cost basis**: $89.94 per month ÷ 6 = **$14.99 per seat**.
 - **Payments**: WeChat Pay, Alipay, Venmo, Zelle; member reports, admin approves; CNY locks the daily USD→CNY rate.
 - **Notifications**: one 7-day advance notice (member + admin) and one 1-day-late admin notice per invoice; receipts.
-- **Storage**: 2 TB iCloud+ split ≈333 GB per seat, with over-quota emails.
+- **Admin seat**: always reserved, never billed; the other five seats are billed per term.
 - **Public page**: bilingual English/中文, dark by default, live pricing and services.
 - **PWA**: installable; admin opens a mobile quick-control screen (`/quick`).
 - **Stack**: Next.js 16, SQLite (WAL), Docker, PWA, GHCR multi-arch image.

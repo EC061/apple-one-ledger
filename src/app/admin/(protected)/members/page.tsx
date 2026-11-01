@@ -3,7 +3,6 @@ import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { formatDate, formatMoney, today } from "@/lib/dates";
 import { seatCapacity, seatsUsed } from "@/lib/auth";
-import { statusFor } from "@/lib/storage";
 import { PLANS, PLAN_ORDER } from "@/lib/pricing";
 import {
   createMemberAction,
@@ -12,10 +11,10 @@ import {
   setPaidThroughAction,
   updateMemberAction,
   adminCreateInvoiceAction,
-  updateMemberStorageAction,
 } from "@/app/actions/admin";
 import { MemberBadge, Notice, StatusBadge } from "@/components/ui";
 import SubmitButton from "@/components/SubmitButton";
+import TableHead from "@/components/TableHead";
 import type { InvoiceStatus, MemberStatus, Plan, Role } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +25,6 @@ const ERRORS: Record<string, string> = {
   exists: "That email is already in use.",
   missing: "Member not found.",
   date: "Use a YYYY-MM-DD date.",
-  storage: "Enter storage usage in GB (0 or more).",
   weak: "Use at least 12 characters and mix upper, lower, numbers or symbols.",
   admin: "The admin account cannot be removed.",
 };
@@ -39,8 +37,6 @@ interface Row {
   status: MemberStatus;
   paid_through: string | null;
   note: string | null;
-  storage_used_gb: number;
-  storage_updated_at: string | null;
   open_id: string | null;
   open_amount: number | null;
   open_status: InvoiceStatus | null;
@@ -58,7 +54,6 @@ export default async function MembersPage({
   const rows = db()
     .prepare(
       `SELECT u.id, u.role, u.name, u.email, u.status, u.paid_through, u.note,
-              u.storage_used_gb, u.storage_updated_at,
               i.id AS open_id, i.amount_usd AS open_amount, i.status AS open_status
        FROM users u
        LEFT JOIN invoices i ON i.user_id = u.id AND i.status IN ('awaiting_payment','submitted','overdue')
@@ -79,7 +74,7 @@ export default async function MembersPage({
         <div>
           <h1>Members</h1>
           <p className="muted" style={{ marginBottom: 0 }}>
-            {seatsUsed()} of {seatCapacity()} seats used · {settings.plan.seats}-way split
+            {seatsUsed()} of {seatCapacity()} seats used · admin seat always included · {settings.plan.seats}-way split
           </p>
         </div>
         <Link href="/admin/invites" className="btn btn-secondary">
@@ -96,16 +91,15 @@ export default async function MembersPage({
         </div>
         <div className="table-wrap">
           <table className="data">
-            <thead>
-              <tr>
-                <th>Member</th>
-                <th>Status</th>
-                <th>Paid through</th>
-                <th>Storage</th>
-                <th>Open invoice</th>
-                <th className="right">Actions</th>
-              </tr>
-            </thead>
+            <TableHead
+              columns={[
+                { label: "Member" },
+                { label: "Status" },
+                { label: "Paid through" },
+                { label: "Open invoice" },
+                { label: "Actions", align: "right" },
+              ]}
+            />
             <tbody>
               {rows.map((row) => {
                 const covered = row.paid_through ? row.paid_through >= day : false;
@@ -122,27 +116,19 @@ export default async function MembersPage({
                       <MemberBadge status={row.status} />
                     </td>
                     <td>
-                      <div className={covered ? "strong" : "muted"}>{row.paid_through ? formatDate(row.paid_through) : "—"}</div>
-                      <div className="muted small">{covered ? "covered" : "not covered"}</div>
-                    </td>
-                    <td>
-                      {(() => {
-                        const state = statusFor(row, settings);
-                        return (
-                          <>
-                            <div className="small">
-                              {state.reported ? `${state.usedGb.toFixed(1)} / ${state.quotaGb.toFixed(0)} GB` : "Not reported"}
-                            </div>
-                            <div className="meter" style={{ width: 90 }} aria-hidden="true">
-                              <span
-                                className={state.over ? "bad" : state.percent >= settings.storage.warnPercent ? "warn" : ""}
-                                style={{ width: `${Math.min(state.percent, 100)}%` }}
-                              />
-                            </div>
-                            {state.over ? <span className="badge badge-overdue">over share</span> : null}
-                          </>
-                        );
-                      })()}
+                      {row.role === "admin" ? (
+                        <>
+                          <span className="badge badge-paid">No payment needed</span>
+                          <div className="muted small">seat reserved</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className={covered ? "strong" : "muted"}>
+                            {row.paid_through ? formatDate(row.paid_through) : "—"}
+                          </div>
+                          <div className="muted small">{covered ? "covered" : "not covered"}</div>
+                        </>
+                      )}
                     </td>
                     <td>
                       {row.open_id ? (
@@ -224,23 +210,6 @@ export default async function MembersPage({
                               </form>
                             </>
                           )}
-
-                          <form action={updateMemberStorageAction} className="row" style={{ gap: 6 }}>
-                            <input type="hidden" name="userId" value={row.id} />
-                            <input
-                              name="usedGb"
-                              type="number"
-                              min={0}
-                              step="0.1"
-                              className="input"
-                              defaultValue={Number(row.storage_used_gb || 0).toFixed(1)}
-                              aria-label="Storage used (GB)"
-                              style={{ flex: 1 }}
-                            />
-                            <SubmitButton className="btn btn-secondary btn-sm" pending="…">
-                              Save GB
-                            </SubmitButton>
-                          </form>
 
                           <form action={setPaidThroughAction} className="row" style={{ gap: 6 }}>
                             <input type="hidden" name="userId" value={row.id} />

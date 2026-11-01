@@ -959,46 +959,6 @@ table.data tr:hover td {
   }
 }
 
-/* ---------------------------------------------------------------- */
-/* Storage meters                                                   */
-/* ---------------------------------------------------------------- */
-
-.meter {
-  height: 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--ink) 12%, transparent);
-  overflow: hidden;
-  margin: 8px 0 4px;
-}
-.meter > span {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  background: var(--brand);
-  transition: width 0.3s ease;
-}
-.meter > span.warn {
-  background: #d08a1a;
-}
-.meter > span.bad {
-  background: var(--danger);
-}
-
-.storage-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 4px 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--line);
-}
-.storage-row:last-child {
-  border-bottom: 0;
-}
-.storage-row .meter {
-  grid-column: 1 / -1;
-  margin: 2px 0 0;
-}
-
 details summary::-webkit-details-marker {
   display: none;
 }

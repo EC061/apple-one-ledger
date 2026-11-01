@@ -16,11 +16,10 @@ Everything else is stored in SQLite and editable at **Admin → Settings**:
 
 - **Plan & pricing** — plan name, timezone (default `America/New_York`), seats, grace days,
   payment due window, monthly cost, first-term and renewal prices, service list.
-- **Payment details** — WeChat / Alipay IDs, QR upload (camera/photo, stored in `/data/uploads`) or URL, Venmo handle, Zelle email, instructions.
+- **Payment details** — WeChat / Alipay QR upload (camera/photo, stored in `/data/uploads`) or URL, Venmo handle, Zelle email, instructions.
 - **SMTP** — host, port, TLS, user, password, from; test send.
 - **Exchange rate** — automatic (frankfurter/ECB) or manual; refresh now.
 - **Reminders** — the single advance notice (7 days) and the single late admin notice (1 day).
-- **Storage** — pool size, sharing count, warn threshold, stale age, member/admin alerts.
 - **Application** — session lifetime, scheduler interval, payment tolerance.
 
 ## First run
@@ -39,7 +38,8 @@ Everything else is stored in SQLite and editable at **Admin → Settings**:
   own account by using `ADMIN_REG_CODE` with the same email on `/signup`.
 - Removing a seat revokes sessions, voids open invoices and frees the seat; history stays.
 - **Preview dashboard** in Members (or Pool → Preview) opens a read-only copy of that member's
-  dashboard, including coverage, invoices, term prices and storage.
+  dashboard, including coverage, invoices, term prices, history and profile.
 - The installed PWA starts at **`/quick`**: a mobile control panel with per-member mark-paid,
   proof upload and WeChat/Alipay QR upload. Members are redirected to their dashboard.
+- The admin seat is reserved and never billed; it still counts toward the seat limit.
 - Timezone affects "today", due dates and reminder windows.

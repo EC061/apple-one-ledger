@@ -5,7 +5,6 @@ import { formatDate, formatMoney, relativeDays, today } from "@/lib/dates";
 import { seatCapacity, seatsUsed } from "@/lib/auth";
 import { latestStoredRate } from "@/lib/fx";
 import { removalCandidates } from "@/lib/reminders";
-import { storageTotals } from "@/lib/storage";
 import { runJobsAction } from "@/app/actions/admin";
 import { Notice, Stat } from "@/components/ui";
 import SubmitButton from "@/components/SubmitButton";
@@ -14,7 +13,6 @@ import {
   ActivitySystemCards,
   OpenPaymentsCard,
   PendingReviewCard,
-  StoragePoolCard,
   UncoveredCard,
 } from "@/components/admin/OverviewSections";
 
@@ -90,12 +88,6 @@ export default async function AdminOverviewPage({
     .all() as { id: number; at: string; action: string; detail: string | null }[];
 
   const removals = removalCandidates(day);
-  const storage = storageTotals();
-  const storageUsers = db()
-    .prepare(
-      "SELECT id, name, email, storage_used_gb, storage_updated_at FROM users WHERE status = 'active' ORDER BY storage_used_gb DESC",
-    )
-    .all() as { id: string; name: string; email: string; storage_used_gb: number; storage_updated_at: string | null }[];
   const rate = latestStoredRate();
   const nextDue = open[0]?.due_date;
 
@@ -154,8 +146,6 @@ export default async function AdminOverviewPage({
       <UncoveredCard uncovered={uncovered} />
 
       <PendingReviewCard pendingPayments={pendingPayments} settings={settings} />
-
-      <StoragePoolCard settings={settings} storage={storage} storageUsers={storageUsers} />
 
       <ActivitySystemCards events={events} settings={settings} rate={rate} />
     </>

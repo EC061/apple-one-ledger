@@ -24,7 +24,7 @@ There are exactly **two** reminder events:
    - Admin only, one email per invoice: “remove the seat or contact the member”.
    - No member overdue email, no repeated dunning.
 
-There is no daily digest, no overdue cadence, and no separate removal-warning series.
+That is the complete schedule; nothing else is sent automatically.
 
 ## Other emails
 
@@ -35,7 +35,6 @@ There is no daily digest, no overdue cadence, and no separate removal-warning se
 | `admin-advance` | Same day, one summary to the admin |
 | `admin-late` | 1 day past due, per invoice, to the admin |
 | `receipt` | Payment confirmed |
-| `storage-alert` / `storage-alert-admin` | Over-quota member / daily admin summary |
 
 ## Scheduler
 
@@ -44,7 +43,6 @@ The daily job runs inside the container every 6 hours (editable under Applicatio
 1. Marks overdue invoices (awaiting only, never `submitted`).
 2. Refreshes the USD→CNY rate once per day.
 3. Sends the advance notices and the late admin notices.
-4. Checks storage and sends over-quota alerts.
 
 No external cron is required. **Admin → Overview → Run daily jobs** triggers it manually.
 

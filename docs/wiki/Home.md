@@ -5,8 +5,8 @@ Self-hosted ledger for **one** family sharing two subscriptions:
 - **Apple One Premier** — Apple Music, Apple TV+, Apple Arcade, Apple News+, Apple Fitness+, iCloud+ 2 TB
 - **AppleCare One** — device coverage for the family
 
-Six seats, quarterly / half-year / annual billing, USD or CNY, email reminders and a fair-share
-storage view. No multi-tenant/family management.
+Six seats, quarterly / half-year / annual billing, USD or CNY, and email reminders. The admin
+seat is always reserved and never billed. No multi-tenant/family management.
 
 ## Start here
 
@@ -14,7 +14,6 @@ storage view. No multi-tenant/family management.
 - [Configuration](Configuration) — every environment variable and admin setting
 - [Deployment](Deployment) — compose, reverse proxy, backups, upgrades, GHCR
 - [Billing and payments](Billing-and-Payments) — pricing rules, invoices, CNY, approval flow
-- [Storage](Storage) — 2 TB split, manual readings, alerts
 - [Email and reminders](Email-and-Reminders) — SMTP, templates, schedule
 - [Security](Security) — auth model, rate limits, audit results
 - [Development and CI](Development-and-CI) — scripts, React Doctor, CodeQL, native builds

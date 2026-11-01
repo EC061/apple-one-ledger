@@ -3,17 +3,9 @@ import { requireUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { today } from "@/lib/dates";
 import { openInvoiceFor, nextTermIndex } from "@/lib/billing";
-import { statusFor } from "@/lib/storage";
 import { db } from "@/lib/db";
 import TopBar from "@/components/TopBar";
-import {
-  BillingSection,
-  HistoryCard,
-  MemberHeader,
-  MemberStats,
-  MemberStorageCard,
-  ProfileCards,
-} from "@/components/member/MemberSections";
+import { MemberDashboard } from "@/components/member/MemberDashboard";
 import { Notice } from "@/components/ui";
 import InstallHint from "@/components/InstallHint";
 import type { Invoice } from "@/lib/types";
@@ -47,7 +39,6 @@ export default async function DashboardPage({
     .all(user.id) as unknown as Invoice[];
 
   const covered = user.paid_through && user.paid_through >= day;
-  const storage = statusFor(user, settings);
 
   return (
     <div className="page">
@@ -71,25 +62,14 @@ export default async function DashboardPage({
             <Notice tone="error">{ERRORS[params.error] ?? "Something went wrong. Please try again."}</Notice>
           ) : null}
 
-          <MemberHeader user={user} settings={settings} covered={Boolean(covered)} />
-
-          <MemberStats
+          <MemberDashboard
             user={user}
+            settings={settings}
             open={open}
             termIndex={termIndex}
-            storage={storage}
-            settings={settings}
+            history={history}
             covered={Boolean(covered)}
           />
-
-          <MemberStorageCard settings={settings} storage={storage} />
-
-          <BillingSection open={open} termIndex={termIndex} settings={settings} />
-
-          <HistoryCard history={history} />
-
-          <ProfileCards user={user} />
-
         </div>
       </main>
       <footer className="footer">

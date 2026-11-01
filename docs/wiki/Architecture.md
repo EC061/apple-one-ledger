@@ -27,7 +27,6 @@ src/lib
   fx.ts                    USD→CNY fetch + snapshot
   email.ts                 SMTP transport, templates, dedupe
   reminders.ts             daily jobs
-  storage.ts               fair share, alerts
   settings.ts              defaults + persistence
 src/instrumentation.ts     in-process scheduler (6 h)
 ```
@@ -36,16 +35,15 @@ src/instrumentation.ts     in-process scheduler (6 h)
 
 | Table | Purpose |
 | --- | --- |
-| `users` | admin + members; scrypt password hash, status, paid-through, storage GB |
+| `users` | admin + members; scrypt password hash, status, paid-through |
 | `sessions` | hashed session tokens, 30-day default lifetime |
 | `invites` | one-time, expiring seat tokens |
 | `invoices` | term, period, amount USD/CNY, locked FX, status, reference |
 | `payments` | member reports / admin confirmations, pending-confirmed-rejected |
-| `settings` | JSON sections: plan, pricing, payments, smtp, fx, reminders, storage, app |
+| `settings` | JSON sections: plan, pricing, payments, smtp, fx, reminders, app |
 | `fx_rates` | daily USD→CNY snapshots |
 | `emails` | delivery log + dedupe keys |
 | `events` | audit trail |
-| `storage_readings` | history of reported GB values |
 
 ## Request flow
 
@@ -54,11 +52,10 @@ src/instrumentation.ts     in-process scheduler (6 h)
 3. Invoice changes run inside `BEGIN IMMEDIATE` and use status predicates, so concurrent
    submit/approve/void cannot overwrite each other.
 4. The daily job runs inside the container every 6 hours (editable): overdue marking, FX,
-   advance notices, late admin notices, storage alerts.
+   advance notices and late admin notices.
 
 ## Deliberate limits
 
 - One family, six seats; no tenant isolation.
 - No payment-provider API integration (personal WeChat/Alipay/Venmo/Zelle have none).
-- Storage is reported, not scraped from Apple.
 - SQLite is designed for one container with one volume; not multi-writer replicas.

@@ -34,7 +34,6 @@ import {
   smtpConfigured,
 } from "@/lib/email";
 import { runDailyJobs } from "@/lib/reminders";
-import { updateStorage } from "@/lib/storage";
 import { getBaseUrl } from "@/lib/url";
 import { addDays, today } from "@/lib/dates";
 import type { Invoice, Payment, User } from "@/lib/types";
@@ -142,8 +141,6 @@ export async function saveSettingsAction(formData: FormData) {
     saveSection("payments", {
       venmoHandle: text(formData, "venmoHandle").replace(/^@/, ""),
       zelleEmail: text(formData, "zelleEmail"),
-      wechatId: text(formData, "wechatId"),
-      alipayId: text(formData, "alipayId"),
       wechatQrUrl,
       alipayQrUrl,
       instructions: text(formData, "instructions").slice(0, 2000),
@@ -190,18 +187,6 @@ export async function saveSettingsAction(formData: FormData) {
       sessionDays: Math.round(clamp(number(formData, "sessionDays", current.app.sessionDays), 1, 365)),
       schedulerHours: Math.round(clamp(number(formData, "schedulerHours", current.app.schedulerHours), 1, 168)),
       paymentToleranceUsd: clamp(number(formData, "paymentToleranceUsd", current.app.paymentToleranceUsd), 0, 100),
-    });
-  }
-
-  if (intent === "storage") {
-    saveSection("storage", {
-      enabled: flag(formData, "enabled"),
-      totalGb: Math.max(number(formData, "totalGb", current.storage.totalGb), 1),
-      shareCount: Math.round(clamp(number(formData, "shareCount", current.storage.shareCount), 1, 12)),
-      warnPercent: clamp(number(formData, "warnPercent", 90), 50, 100),
-      maxAgeDays: Math.round(clamp(number(formData, "maxAgeDays", current.storage.maxAgeDays), 7, 365)),
-      notifyMember: flag(formData, "notifyMember"),
-      notifyAdmin: flag(formData, "notifyAdmin"),
     });
   }
 
@@ -370,21 +355,6 @@ export async function updateMemberAction(formData: FormData) {
   event(null, "member.updated", { userId });
   refreshAll();
   redirect("/admin/members?saved=1");
-}
-
-export async function updateMemberStorageAction(formData: FormData) {
-  await requireAdmin();
-  const userId = text(formData, "userId");
-  const usedGb = number(formData, "usedGb", -1);
-  if (usedGb < 0) redirect("/admin/members?error=storage");
-  try {
-    updateStorage(userId, usedGb, "admin", "admin");
-  } catch (error) {
-    redirect(`/admin/members?error=${encodeURIComponent((error as Error).message)}`);
-  }
-  revalidatePath("/admin/members");
-  revalidatePath("/admin");
-  redirect("/admin/members?saved=storage");
 }
 
 export async function setMemberStatusAction(formData: FormData) {

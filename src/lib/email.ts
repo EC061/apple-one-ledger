@@ -164,9 +164,6 @@ function esc(value: string): string {
   });
 }
 
-function gb(value: number): string {
-  return `${value.toFixed(value >= 100 ? 0 : 1)} GB`;
-}
 
 function p(text: string) {
   return `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#25352e;">${text}</p>`;
@@ -298,86 +295,6 @@ export async function sendReceiptEmail(input: { user: User; invoice: Invoice; ba
   });
 }
 
-
-export async function sendStorageAlertEmail(input: {
-  user: User;
-  quotaGb: number;
-  usedGb: number;
-  totalGb: number;
-  baseUrl: string;
-  audience: "member" | "admin";
-  overUsers?: { name: string; email: string; usedGb: number; quotaGb: number }[];
-  dedupeKey: string;
-}) {
-  const { user, quotaGb: quota, usedGb, totalGb, baseUrl, audience } = input;
-  const percent = quota > 0 ? (usedGb / quota) * 100 : 0;
-
-  if (audience === "admin") {
-    const list = input.overUsers ?? [];
-    const subject = `Storage alert: ${list.length} member${list.length === 1 ? "" : "s"} over their share`;
-    const text = [
-      `iCloud+ pool: ${gb(totalGb)} shared across the plan.`,
-      `Per-seat share: ${gb(quota)}.`,
-      "",
-      ...list.map((row) => `${row.name} <${row.email}> — ${gb(row.usedGb)} (${((row.usedGb / row.quotaGb) * 100).toFixed(0)}% of share)`),
-      "",
-      `${baseUrl}/admin`,
-    ].join("\n");
-
-    const html = layout(
-      "Storage alert",
-      p(`${list.length} member(s) are above their share of the ${gb(totalGb)} iCloud+ pool.`) +
-        details([
-          ["Shared pool", gb(totalGb)],
-          ["Share per seat", gb(quota)],
-        ]) +
-        `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:13px;border-collapse:collapse;">
-          <tr style="text-align:left;color:#6b7c74;">
-            <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;">Member</th>
-            <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;text-align:right;">Used</th>
-            <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;text-align:right;">Share</th>
-          </tr>
-          ${list
-            .map(
-              (row) =>
-                `<tr><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;">${esc(row.name)}<br><span style="color:#6b7c74;font-size:12px;">${esc(row.email)}</span></td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;text-align:right;font-weight:600;">${gb(row.usedGb)}</td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;text-align:right;color:#6b7c74;">${gb(row.quotaGb)}</td></tr>`,
-            )
-            .join("")}
-        </table>` +
-        button(`${baseUrl}/admin`, "Open admin"),
-      "Storage is reported by the admin or the storage ingest endpoint.",
-    );
-
-    return sendMail({ to: user.email, subject, text, html, kind: "storage-alert-admin", dedupeKey: input.dedupeKey });
-  }
-
-  const subject = `You are using ${gb(usedGb)} — over your ${gb(quota)} share`;
-  const text = [
-    `Hi ${user.name},`,
-    "",
-    `The family iCloud+ pool is ${gb(totalGb)}, split evenly across the plan. Your share is ${gb(quota)}.`,
-    `You are currently using ${gb(usedGb)} (${percent.toFixed(0)}% of your share).`,
-    "",
-    "Please free up space or move large backups to another storage provider so the rest of the family keeps their share.",
-    "",
-    `${baseUrl}/dashboard`,
-  ].join("\n");
-
-  const html = layout(
-    "You are over your storage share",
-    p(`Hi ${esc(user.name)},`) +
-      p(
-        `The family iCloud+ pool is <strong>${gb(totalGb)}</strong>, split evenly across the plan. Your share is <strong>${gb(quota)}</strong>.`,
-      ) +
-      p(`You are currently using <strong>${gb(usedGb)}</strong> (${percent.toFixed(0)}% of your share).`) +
-      `<div style="height:10px;background:#eef2f0;border-radius:999px;overflow:hidden;margin:6px 0 16px;"><div style="height:10px;width:${Math.min(percent, 100).toFixed(0)}%;background:#b42318;"></div></div>` +
-      p("Please free up space or move large backups elsewhere so the rest of the family keeps their share.") +
-      button(`${baseUrl}/dashboard`, "Open dashboard"),
-    "You receive this because you are on a shared iCloud+ family plan.",
-  );
-
-  return sendMail({ to: user.email, subject, text, html, kind: "storage-alert", dedupeKey: input.dedupeKey });
-}
 
 /** Load an invoice + its member and send the receipt. Safe to call twice. */
 export async function sendReceiptForInvoice(invoiceId: string) {

@@ -31,7 +31,7 @@ export function PayDestinations({
                     </div>
                   ) : null}
 
-                  {methodRows.filter((item) => item.value).map((item) => (
+                  {methodRows.filter((item) => item.value || item.qr).map((item) => (
                     <div key={item.key} style={{ borderBottom: "1px solid var(--line)", paddingBottom: 10 }}>
                       <div className="row-between">
                         <span className="strong small">{item.label}</span>
@@ -40,9 +40,9 @@ export function PayDestinations({
                             <span className="mono small">{item.value}</span>
                             <CopyButton value={item.value} label="Copy" />
                           </span>
-                        ) : (
-                          <span className="muted small">not configured</span>
-                        )}
+                        ) : item.qr ? (
+                          <span className="muted small">Scan the QR to pay</span>
+                        ) : null}
                       </div>
                       {item.qr ? (
                         // eslint-disable-next-line @next/next/no-img-element

@@ -15,8 +15,6 @@ export interface User {
   status: MemberStatus;
   paid_through: string | null;
   note: string | null;
-  storage_used_gb: number;
-  storage_updated_at: string | null;
   created_at: string;
   updated_at: string;
 }

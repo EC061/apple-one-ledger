@@ -3,7 +3,6 @@ import { formatDate, formatDateTime, formatMoney, relativeDays } from "@/lib/dat
 import { PLANS, PLAN_ORDER } from "@/lib/pricing";
 import { adminCreateInvoiceAction } from "@/app/actions/admin";
 import { smtpConfigured } from "@/lib/email";
-import { statusFor, storageTotals } from "@/lib/storage";
 import { Empty, MethodBadge, StatusBadge } from "@/components/ui";
 import SubmitButton from "@/components/SubmitButton";
 import type { Settings } from "@/lib/settings";
@@ -190,76 +189,6 @@ export function PendingReviewCard({
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-      ) : null}
-    </>
-  );
-}
-
-export function StoragePoolCard({
-  settings,
-  storage,
-  storageUsers,
-}: {
-  settings: Settings;
-  storage: ReturnType<typeof storageTotals>;
-  storageUsers: { id: string; name: string; email: string; storage_used_gb: number; storage_updated_at: string | null }[];
-}) {
-  return (
-    <>
-      {settings.storage.enabled ? (
-        <div className="card">
-          <div className="card-head">
-            <div>
-              <h2>Storage pool</h2>
-              <span className="muted small">
-                {storage.totalGb} GB shared · {storage.quotaGb.toFixed(0)} GB per seat ({settings.storage.shareCount}-way split)
-              </span>
-            </div>
-            <span className={`badge ${storage.people > 0 && storage.percent > 100 ? "badge-overdue" : "badge-paid"}`}>
-              {storage.usedGb.toFixed(0)} GB reported
-            </span>
-          </div>
-          <div className="card-body">
-            <div className="meter">
-              <span
-                className={storage.percent > 100 ? "bad" : storage.percent >= settings.storage.warnPercent ? "warn" : ""}
-                style={{ width: `${Math.min(storage.percent, 100)}%` }}
-              />
-            </div>
-            <div className="row-between small muted" style={{ marginBottom: 8 }}>
-              <span>{storage.percent.toFixed(1)}% of the family pool</span>
-              <span>
-                {storage.people} active people · {storage.reported} reported
-              </span>
-            </div>
-
-            {storageUsers.map((member) => {
-              const state = statusFor(member, settings);
-              return (
-                <div className="storage-row" key={member.id}>
-                  <div className="small">
-                    <strong>{member.name}</strong> <span className="muted">{member.email}</span>
-                  </div>
-                  <div className="small strong">
-                    {state.reported ? `${state.usedGb.toFixed(1)} / ${state.quotaGb.toFixed(0)} GB` : "not reported"}{" "}
-                    {state.over ? <span className="badge badge-overdue">over</span> : null}
-                    {state.stale && state.reported ? <span className="badge badge-warn">stale</span> : null}
-                  </div>
-                  <div className="meter">
-                    <span
-                      className={state.over ? "bad" : state.percent >= settings.storage.warnPercent ? "warn" : ""}
-                      style={{ width: `${Math.min(state.percent, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-            <p className="hint" style={{ marginTop: 10, marginBottom: 0 }}>
-              Update usage per member under <Link href="/admin/members">Members</Link>. Apple has no public API for
-              family storage, so values are reported rather than scraped.
-            </p>
           </div>
         </div>
       ) : null}

@@ -3,20 +3,18 @@ import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { formatDate, formatMoney, relativeDays, today } from "@/lib/dates";
 import { seatCapacity, seatsUsed } from "@/lib/auth";
-import { statusFor, storageTotals } from "@/lib/storage";
 import { Empty, Stat, StatusBadge } from "@/components/ui";
 import TableHead from "@/components/TableHead";
-import type { InvoiceStatus } from "@/lib/types";
+import type { InvoiceStatus, Role } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 interface PoolRow {
   id: string;
+  role: Role;
   name: string;
   email: string;
   paid_through: string | null;
-  storage_used_gb: number;
-  storage_updated_at: string | null;
   open_id: string | null;
   open_amount: number | null;
   open_status: InvoiceStatus | null;
@@ -29,7 +27,7 @@ export default async function PoolPage() {
 
   const rows = db()
     .prepare(
-      `SELECT u.id, u.name, u.email, u.paid_through, u.storage_used_gb, u.storage_updated_at,
+      `SELECT u.id, u.role, u.name, u.email, u.paid_through,
               i.id AS open_id, i.amount_usd AS open_amount, i.status AS open_status, i.due_date AS open_due
        FROM users u
        LEFT JOIN invoices i ON i.user_id = u.id AND i.status IN ('awaiting_payment','submitted','overdue')
@@ -46,10 +44,10 @@ export default async function PoolPage() {
     .prepare("SELECT COUNT(*) AS n FROM invites WHERE used_at IS NULL AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at >= ?)")
     .get(day) as { n: number };
 
-  const storage = storageTotals(day);
   const capacity = seatCapacity();
   const used = seatsUsed();
-  const covered = rows.filter((row) => row.paid_through && row.paid_through >= day).length;
+  const billable = rows.filter((row) => row.role === "member").length;
+  const covered = rows.filter((row) => row.role === "member" && row.paid_through && row.paid_through >= day).length;
   const open = rows.filter((row) => row.open_id).length;
 
   return (
@@ -73,7 +71,12 @@ export default async function PoolPage() {
 
       <div className="grid grid-4">
         <Stat label="Seats" value={`${used} / ${capacity}`} sub={`${Math.max(capacity - used, 0)} available`} />
-        <Stat label="Covered" value={`${covered} / ${used}`} sub={`${used - covered} without coverage`} tone={covered < used ? "warn" : undefined} />
+        <Stat
+          label="Members covered"
+          value={`${covered} / ${billable}`}
+          sub={billable === 0 ? "no member seats yet" : `${billable - covered} without coverage`}
+          tone={covered < billable ? "warn" : undefined}
+        />
         <Stat label="Open invoices" value={String(open)} sub={`${formatMoney(rows.reduce((sum, row) => sum + (row.open_amount ?? 0), 0))} outstanding`} tone={open ? "warn" : undefined} />
         <Stat label="Invite tokens" value={String(Number(invites.n))} sub="unused and unexpired" />
       </div>
@@ -83,7 +86,7 @@ export default async function PoolPage() {
           <div>
             <h2>Seats in use</h2>
             <span className="muted small">
-              {covered} covered · {open} open invoice(s) · {storage.reported} storage reading(s) reported
+              {covered} member(s) covered · {open} open invoice(s) · admin seat reserved
             </span>
           </div>
           <Link href="/admin/members" className="btn btn-ghost btn-sm">
@@ -100,13 +103,11 @@ export default async function PoolPage() {
                   { label: "Member" },
                   { label: "Coverage" },
                   { label: "Open invoice" },
-                  { label: "Storage" },
                   { label: "Action", align: "right" },
                 ]}
               />
               <tbody>
                 {rows.map((row) => {
-                  const state = statusFor(row, settings, day);
                   const isCovered = row.paid_through ? row.paid_through >= day : false;
                   return (
                     <tr key={row.id}>
@@ -115,12 +116,21 @@ export default async function PoolPage() {
                         <div className="muted small">{row.email}</div>
                       </td>
                       <td>
-                        <div className={isCovered ? "strong" : "muted"}>
-                          {row.paid_through ? formatDate(row.paid_through) : "never"}
-                        </div>
-                        <div className="muted small">
-                          {isCovered ? relativeDays(row.paid_through!, settings.plan.timezone) : "no coverage"}
-                        </div>
+                        {row.role === "admin" ? (
+                          <>
+                            <span className="badge badge-paid">No payment needed</span>
+                            <div className="muted small">seat reserved</div>
+                          </>
+                        ) : (
+                          <>
+                            <div className={isCovered ? "strong" : "muted"}>
+                              {row.paid_through ? formatDate(row.paid_through) : "never"}
+                            </div>
+                            <div className="muted small">
+                              {isCovered ? relativeDays(row.paid_through!, settings.plan.timezone) : "no coverage"}
+                            </div>
+                          </>
+                        )}
                       </td>
                       <td>
                         {row.open_id ? (
@@ -133,17 +143,6 @@ export default async function PoolPage() {
                         ) : (
                           <span className="muted small">none</span>
                         )}
-                      </td>
-                      <td>
-                        <div className="small">
-                          {state.reported ? `${state.usedGb.toFixed(1)} / ${state.quotaGb.toFixed(0)} GB` : "not reported"}
-                        </div>
-                        <div className="meter" style={{ width: 90 }} aria-hidden="true">
-                          <span
-                            className={state.over ? "bad" : state.percent >= settings.storage.warnPercent ? "warn" : ""}
-                            style={{ width: `${Math.min(state.percent, 100)}%` }}
-                          />
-                        </div>
                       </td>
                       <td className="right">
                         <div className="row" style={{ justifyContent: "flex-end", gap: 6 }}>
@@ -221,8 +220,8 @@ export default async function PoolPage() {
               <span>{settings.plan.graceDays} days</span>
             </div>
             <div className="row-between">
-              <span>Storage share</span>
-              <span>{settings.storage.totalGb} GB ÷ {settings.storage.shareCount}</span>
+              <span>Admin seat</span>
+              <span>Reserved · no payment</span>
             </div>
             <div className="row-between">
               <span>Quarterly</span>

@@ -19,8 +19,6 @@ export interface PricingSettings {
 export interface PaymentSettings {
   venmoHandle: string;
   zelleEmail: string;
-  wechatId: string;
-  alipayId: string;
   wechatQrUrl: string;
   alipayQrUrl: string;
   instructions: string;
@@ -60,18 +58,6 @@ export interface AppSettings {
   paymentToleranceUsd: number;
 }
 
-export interface StorageSettings {
-  enabled: boolean;
-  totalGb: number;
-  /** People actually sharing the Apple family pool (may differ from billing seats). */
-  shareCount: number;
-  warnPercent: number;
-  /** Stop alerting on readings older than this. */
-  maxAgeDays: number;
-  notifyMember: boolean;
-  notifyAdmin: boolean;
-}
-
 export interface Settings {
   plan: PlanSettings;
   pricing: PricingSettings;
@@ -79,7 +65,6 @@ export interface Settings {
   smtp: SmtpSettings;
   fx: FxSettings;
   reminders: ReminderSettings;
-  storage: StorageSettings;
   app: AppSettings;
 }
 
@@ -108,8 +93,6 @@ export const DEFAULT_SETTINGS: Settings = {
   payments: {
     venmoHandle: "",
     zelleEmail: "",
-    wechatId: "",
-    alipayId: "",
     wechatQrUrl: "",
     alipayQrUrl: "",
     instructions: "",
@@ -138,15 +121,6 @@ export const DEFAULT_SETTINGS: Settings = {
     sessionDays: 30,
     schedulerHours: 6,
     paymentToleranceUsd: 0.5,
-  },
-  storage: {
-    enabled: true,
-    totalGb: 2000,
-    shareCount: 6,
-    warnPercent: 90,
-    maxAgeDays: 45,
-    notifyMember: true,
-    notifyAdmin: true,
   },
 };
 
