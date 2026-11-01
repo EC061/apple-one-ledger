@@ -114,6 +114,7 @@ CREATE TABLE IF NOT EXISTS payments (
   tx_ref      TEXT,
   source      TEXT NOT NULL,
   raw         TEXT,
+  proof_url   TEXT,
   status      TEXT NOT NULL CHECK (status IN ('pending','confirmed','rejected')),
   created_at  TEXT NOT NULL,
   confirmed_at TEXT
@@ -171,6 +172,7 @@ function migrate(database: DatabaseSync) {
   database.exec(SCHEMA);
   // Additive upgrades for databases created by older builds.
   ensureColumn(database, "users", "password_hash", "TEXT");
+  ensureColumn(database, "payments", "proof_url", "TEXT");
   ensureColumn(database, "users", "storage_used_gb", "REAL NOT NULL DEFAULT 0");
   ensureColumn(database, "users", "storage_updated_at", "TEXT");
 }

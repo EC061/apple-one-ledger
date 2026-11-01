@@ -66,6 +66,7 @@ export interface Payment {
   tx_ref: string | null;
   source: PaymentSource;
   raw: string | null;
+  proof_url: string | null;
   status: "pending" | "confirmed" | "rejected";
   created_at: string;
   confirmed_at: string | null;

@@ -140,6 +140,7 @@ export interface MarkPaidInput {
   actor: string | null;
   note?: string | null;
   raw?: unknown;
+  proofUrl?: string | null;
   status?: "pending" | "confirmed";
   /** Allow a payment smaller than the invoice (admin decision only). */
   allowPartial?: boolean;
@@ -170,8 +171,8 @@ export function markInvoicePaid(input: MarkPaidInput): Invoice {
     const paymentId = newId();
     db()
       .prepare(
-        `INSERT INTO payments (id, invoice_id, method, currency, amount, amount_usd, fx_rate, fx_date, tx_ref, source, raw, status, created_at, confirmed_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO payments (id, invoice_id, method, currency, amount, amount_usd, fx_rate, fx_date, tx_ref, source, raw, proof_url, status, created_at, confirmed_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         paymentId,
@@ -185,6 +186,7 @@ export function markInvoicePaid(input: MarkPaidInput): Invoice {
         input.txRef?.trim() || null,
         input.source,
         input.raw === undefined ? null : JSON.stringify(input.raw),
+        input.proofUrl ?? null,
         input.status ?? "confirmed",
         at,
         input.status === "pending" ? null : at,

@@ -12,6 +12,7 @@ Six seats, quarterly/half-year/annual terms, USD or CNY, email reminders and a s
 - **Notifications**: one 7-day advance notice (member + admin) and one 1-day-late admin notice per invoice; receipts.
 - **Storage**: 2 TB iCloud+ split ≈333 GB per seat, with over-quota emails.
 - **Public page**: bilingual English/中文, dark by default, live pricing and services.
+- **PWA**: installable; admin opens a mobile quick-control screen (`/quick`).
 - **Stack**: Next.js 16, SQLite (WAL), Docker, PWA, GHCR multi-arch image.
 
 ## Quick start

@@ -40,4 +40,6 @@ Everything else is stored in SQLite and editable at **Admin → Settings**:
 - Removing a seat revokes sessions, voids open invoices and frees the seat; history stays.
 - **Preview dashboard** in Members (or Pool → Preview) opens a read-only copy of that member's
   dashboard, including coverage, invoices, term prices and storage.
+- The installed PWA starts at **`/quick`**: a mobile control panel with per-member mark-paid,
+  proof upload and WeChat/Alipay QR upload. Members are redirected to their dashboard.
 - Timezone affects "today", due dates and reminder windows.

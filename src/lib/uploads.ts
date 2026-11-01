@@ -26,7 +26,7 @@ export function uploadMime(name: string): string {
 }
 
 /** Persist a QR image under DATA_DIR/uploads and return its public path. */
-export async function saveQrUpload(file: File, slot: "wechat" | "alipay"): Promise<string> {
+export async function saveImageUpload(file: File, prefix: string): Promise<string> {
   const extension = ALLOWED[file.type];
   if (!extension) {
     throw new Error("QR code must be a PNG, JPG or WebP image.");
@@ -37,7 +37,15 @@ export async function saveQrUpload(file: File, slot: "wechat" | "alipay"): Promi
 
   const dir = uploadDir();
   await mkdir(dir, { recursive: true });
-  const name = `${slot}-${Date.now()}-${randomBytes(4).toString("hex")}.${extension}`;
+  const name = `${prefix}-${Date.now()}-${randomBytes(4).toString("hex")}.${extension}`;
   await writeFile(path.join(dir, name), Buffer.from(await file.arrayBuffer()));
   return `/uploads/${name}`;
+}
+
+export function saveQrUpload(file: File, slot: "wechat" | "alipay"): Promise<string> {
+  return saveImageUpload(file, slot);
+}
+
+export function saveProofUpload(file: File): Promise<string> {
+  return saveImageUpload(file, "proof");
 }
