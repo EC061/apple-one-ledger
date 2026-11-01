@@ -1,0 +1,327 @@
+import Link from "next/link";
+import { db } from "@/lib/db";
+import { getSettings } from "@/lib/settings";
+import { formatDate, formatDateTime, formatMoney, relativeDays } from "@/lib/dates";
+import { PLANS, PLAN_ORDER } from "@/lib/pricing";
+import {
+  adminCreateInvoiceAction,
+  adminMarkPaidAction,
+  adminSendReminderAction,
+  adminVoidInvoiceAction,
+  approvePaymentAction,
+  rejectPaymentAction,
+} from "@/app/actions/admin";
+import { Empty, MethodBadge, Notice, StatusBadge } from "@/components/ui";
+import SubmitButton from "@/components/SubmitButton";
+import type { Invoice, InvoiceStatus, PaymentMethod, Plan } from "@/lib/types";
+
+export const dynamic = "force-dynamic";
+
+const FILTERS: { key: string; label: string; where: string }[] = [
+  { key: "all", label: "All", where: "1=1" },
+  { key: "open", label: "Open", where: "i.status IN ('awaiting_payment','submitted','overdue')" },
+  { key: "overdue", label: "Overdue", where: "i.status = 'overdue'" },
+  { key: "paid", label: "Paid", where: "i.status = 'paid'" },
+  { key: "void", label: "Void", where: "i.status = 'void'" },
+];
+
+const ERRORS: Record<string, string> = {
+  open: "That member already has an open invoice.",
+  plan: "Pick a valid plan.",
+  input: "Check the method and amount.",
+  missing: "Invoice not found.",
+  payment: "That pending payment is no longer available.",
+};
+
+interface Row extends Invoice {
+  user_name: string;
+  user_email: string;
+}
+
+export default async function InvoicesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string; error?: string; saved?: string; created?: string }>;
+}) {
+  const params = await searchParams;
+  const settings = getSettings();
+  const filter = FILTERS.find((item) => item.key === params.status) ?? FILTERS[0];
+
+  const rows = db()
+    .prepare(
+      `SELECT i.*, u.name AS user_name, u.email AS user_email
+       FROM invoices i JOIN users u ON u.id = i.user_id
+       WHERE ${filter.where}
+       ORDER BY i.created_at DESC LIMIT 200`,
+    )
+    .all() as unknown as Row[];
+
+  const pending = db()
+    .prepare(
+      `SELECT p.*, u.name AS user_name, i.reference
+       FROM payments p JOIN invoices i ON i.id = p.invoice_id JOIN users u ON u.id = i.user_id
+       WHERE p.status = 'pending' ORDER BY p.created_at DESC`,
+    )
+    .all() as {
+    id: string;
+    invoice_id: string;
+    method: PaymentMethod;
+    amount: number;
+    currency: "USD" | "CNY";
+    amount_usd: number;
+    created_at: string;
+    user_name: string;
+    reference: string;
+  }[];
+
+  const members = db()
+    .prepare("SELECT id, name, email FROM users WHERE status = 'active' AND role = 'member' ORDER BY name")
+    .all() as { id: string; name: string; email: string }[];
+
+  return (
+    <>
+      {params.error ? <Notice tone="error">{ERRORS[params.error] ?? params.error}</Notice> : null}
+      {params.saved === "paid" ? <Notice tone="ok">Invoice marked paid and a receipt was emailed.</Notice> : null}
+      {params.saved === "void" ? <Notice tone="ok">Invoice voided.</Notice> : null}
+      {params.saved === "approved" ? <Notice tone="ok">Pending payment approved.</Notice> : null}
+      {params.saved === "rejected" ? <Notice tone="ok">Pending payment rejected.</Notice> : null}
+      {params.saved === "sent" ? <Notice tone="ok">Reminder sent.</Notice> : null}
+      {params.saved && !["paid", "void", "approved", "rejected", "sent"].includes(params.saved) ? (
+        <Notice tone="warn">Reminder logged with status: {params.saved}. Check SMTP settings.</Notice>
+      ) : null}
+      {params.created ? <Notice tone="ok">Invoice created.</Notice> : null}
+
+      <div className="row-between">
+        <div>
+          <h1>Invoices</h1>
+          <p className="muted" style={{ marginBottom: 0 }}>
+            USD amounts with the CNY equivalent locked at issue time.
+          </p>
+        </div>
+      </div>
+
+      {pending.length > 0 ? (
+        <div className="card">
+          <div className="card-head">
+            <h2>Automatic matches needing review</h2>
+            <span className="badge badge-warn">{pending.length}</span>
+          </div>
+          <div className="table-wrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Reference</th>
+                  <th>Method</th>
+                  <th className="right">Received</th>
+                  <th>When</th>
+                  <th className="right">Decide</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pending.map((payment) => (
+                  <tr key={payment.id}>
+                    <td>{payment.user_name}</td>
+                    <td className="mono small">{payment.reference}</td>
+                    <td>
+                      <MethodBadge method={payment.method} />
+                    </td>
+                    <td className="right">
+                      {payment.currency === "CNY" ? `¥${payment.amount.toFixed(2)}` : formatMoney(payment.amount)}
+                      <div className="muted small">≈ {formatMoney(payment.amount_usd)}</div>
+                    </td>
+                    <td className="small">{formatDateTime(payment.created_at, settings.plan.timezone)}</td>
+                    <td className="right">
+                      <div className="row" style={{ justifyContent: "flex-end", gap: 6 }}>
+                        <form action={approvePaymentAction}>
+                          <input type="hidden" name="paymentId" value={payment.id} />
+                          <SubmitButton className="btn btn-primary btn-sm" pending="…">
+                            Approve
+                          </SubmitButton>
+                        </form>
+                        <form action={rejectPaymentAction}>
+                          <input type="hidden" name="paymentId" value={payment.id} />
+                          <SubmitButton className="btn btn-danger btn-sm" pending="…">
+                            Reject
+                          </SubmitButton>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="card">
+        <div className="card-head">
+          <div className="tabs" style={{ marginBottom: 0, borderBottom: 0 }}>
+            {FILTERS.map((item) => (
+              <Link key={item.key} href={`/admin/invoices?status=${item.key}`} className={filter.key === item.key ? "active" : undefined}>
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {rows.length === 0 ? (
+          <Empty>No invoices in this view.</Empty>
+        ) : (
+          <div className="table-wrap">
+            <table className="data" style={{ minWidth: 900 }}>
+              <thead>
+                <tr>
+                  <th>Reference</th>
+                  <th>Member</th>
+                  <th>Term</th>
+                  <th className="right">Amount</th>
+                  <th>Status</th>
+                  <th>Paid</th>
+                  <th className="right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((invoice) => (
+                  <tr key={invoice.id}>
+                    <td className="mono small">{invoice.reference}</td>
+                    <td>
+                      <div className="strong">{invoice.user_name}</div>
+                      <div className="muted small">{invoice.user_email}</div>
+                    </td>
+                    <td className="small">
+                      {formatDate(invoice.period_start)} – {formatDate(invoice.period_end)}
+                      <div className="muted">
+                        {PLANS[invoice.plan as Plan].label} · term {invoice.term_index}
+                      </div>
+                    </td>
+                    <td className="right">
+                      {formatMoney(invoice.amount_usd)}
+                      <div className="muted small">¥{invoice.amount_cny.toFixed(2)}</div>
+                    </td>
+                    <td>
+                      <StatusBadge status={invoice.status} />
+                      <div className="muted small">due {relativeDays(invoice.due_date, settings.plan.timezone)}</div>
+                    </td>
+                    <td className="small">
+                      {invoice.paid_at ? formatDateTime(invoice.paid_at, settings.plan.timezone) : <span className="muted">—</span>}
+                      <div>
+                        <MethodBadge method={invoice.method} />
+                      </div>
+                    </td>
+                    <td className="right">
+                      <details>
+                        <summary className="btn btn-secondary btn-sm" style={{ display: "inline-flex", listStyle: "none" }}>
+                          Manage
+                        </summary>
+                        <div className="stack-sm" style={{ marginTop: 10, textAlign: "left", minWidth: 300 }}>
+                          {invoice.status !== "paid" && invoice.status !== "void" ? (
+                            <form action={adminMarkPaidAction} className="stack-sm">
+                              <input type="hidden" name="invoiceId" value={invoice.id} />
+                              <div className="row" style={{ gap: 6 }}>
+                                <select name="method" className="select" defaultValue="venmo" aria-label="Method">
+                                  <option value="venmo">Venmo</option>
+                                  <option value="zelle">Zelle</option>
+                                  <option value="wechat">WeChat</option>
+                                  <option value="alipay">Alipay</option>
+                                </select>
+                                <select name="currency" className="select" defaultValue="USD" aria-label="Currency">
+                                  <option value="USD">USD</option>
+                                  <option value="CNY">CNY</option>
+                                </select>
+                              </div>
+                              <input
+                                name="amount"
+                                className="input"
+                                defaultValue={invoice.amount_usd.toFixed(2)}
+                                inputMode="decimal"
+                                aria-label="Amount"
+                              />
+                              <input name="txRef" className="input" placeholder="Transaction reference" aria-label="Transaction reference" />
+                              <SubmitButton className="btn btn-primary btn-sm" pending="Saving…">
+                                Mark paid
+                              </SubmitButton>
+                            </form>
+                          ) : null}
+
+                          <div className="row" style={{ gap: 6 }}>
+                            <Link href={`/dashboard/pay/${invoice.id}`} className="btn btn-secondary btn-sm">
+                              View
+                            </Link>
+
+                            {invoice.status !== "paid" && invoice.status !== "void" ? (
+                              <>
+                                <form action={adminSendReminderAction}>
+                                  <input type="hidden" name="invoiceId" value={invoice.id} />
+                                  <input type="hidden" name="kind" value="reminder" />
+                                  <SubmitButton className="btn btn-secondary btn-sm" pending="Sending…">
+                                    Remind
+                                  </SubmitButton>
+                                </form>
+                                <form action={adminVoidInvoiceAction}>
+                                  <input type="hidden" name="invoiceId" value={invoice.id} />
+                                  <SubmitButton className="btn btn-danger btn-sm" pending="Voiding…">
+                                    Void
+                                  </SubmitButton>
+                                </form>
+                              </>
+                            ) : null}
+                          </div>
+                        </div>
+                      </details>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="card">
+        <div className="card-head">
+          <div>
+            <h2>Create an invoice</h2>
+            <span className="muted small">Price is chosen automatically: first term for a new member, renewal afterwards.</span>
+          </div>
+        </div>
+        <div className="card-body">
+          {members.length === 0 ? (
+            <Empty>Add a member first.</Empty>
+          ) : (
+            <form action={adminCreateInvoiceAction} className="row" style={{ alignItems: "flex-end" }}>
+              <div className="field" style={{ minWidth: 220 }}>
+                <label className="label" htmlFor="userId">
+                  Member
+                </label>
+                <select id="userId" name="userId" className="select">
+                  {members.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.name} · {member.email}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field" style={{ minWidth: 160 }}>
+                <label className="label" htmlFor="plan">
+                  Term
+                </label>
+                <select id="plan" name="plan" className="select" defaultValue="quarterly">
+                  {PLAN_ORDER.map((plan) => (
+                    <option key={plan} value={plan}>
+                      {PLANS[plan].label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <SubmitButton className="btn btn-primary" pending="Creating…">
+                Create invoice
+              </SubmitButton>
+            </form>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}

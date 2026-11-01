@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.github
+data
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.*
+!.env.example
+README.md
+PROGRESS.md
+.DS_Store
+.tgrep

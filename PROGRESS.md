@@ -1,0 +1,21 @@
+# Build progress
+
+- [x] Project scaffold, Next.js 15 + TypeScript config
+- [x] SQLite (WAL) schema: users, invites, invoices, payments, settings, fx, emails, events
+- [x] Settings model + defaults (pricing, payment handles, SMTP, reminders, automation)
+- [x] Pricing rules (first term 45 / 90 / 180, renewals 51 / 96 / 180, 89.94 ÷ 6 = 14.99)
+- [x] Invoice + payment lifecycle (create, submit, verify, void, paid-through)
+- [ ] FX rate service (USD→CNY daily rate, manual override)
+- [ ] Auth: invite codes, access codes, admin env code, sessions, rate limiting
+- [ ] Email: SMTP config, templates, invite/reminder/receipt/removal mail
+- [ ] Reminder + overdue scheduler
+- [ ] Automatic payment matching (webhook ingest + IMAP poller)
+- [ ] Public pages: landing, login, invite join
+- [ ] Member dashboard + payment page
+- [ ] Admin dashboard: stats, members, invoices, invites, settings, email log
+- [ ] API routes: health, ingest, cron, fx
+- [ ] Dockerfile, docker-compose, .env.example
+- [ ] GitHub Actions: CI + GHCR multi-arch publish
+- [ ] README + deploy/ops docs
+- [ ] Typecheck, production build, smoke test
+- [ ] Backend/frontend design review
