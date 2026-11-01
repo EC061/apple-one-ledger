@@ -218,7 +218,7 @@ export default async function MembersPage({
                               style={{ flex: 1 }}
                             />
                             <SubmitButton className="btn btn-secondary btn-sm" pending="…">
-                              GB
+                              Save GB
                             </SubmitButton>
                           </form>
 
@@ -229,10 +229,11 @@ export default async function MembersPage({
                               name="paidThrough"
                               className="input"
                               defaultValue={row.paid_through ?? ""}
+                              aria-label="Paid through date"
                               style={{ flex: 1 }}
                             />
                             <SubmitButton className="btn btn-secondary btn-sm" pending="…">
-                              Set
+                              Set date
                             </SubmitButton>
                           </form>
 

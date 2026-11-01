@@ -2,7 +2,7 @@ import { db, newId, nowIso, tx, event } from "./db";
 import { PLANS, newReference, priceFor } from "./pricing";
 import { addDays, addMonths, today } from "./dates";
 import { getSettings } from "./settings";
-import type { Invoice, PaymentMethod, Plan, User } from "./types";
+import type { Invoice, Payment, PaymentMethod, Plan, User } from "./types";
 
 export class BillingError extends Error {}
 
@@ -139,6 +139,8 @@ export interface MarkPaidInput {
   note?: string | null;
   raw?: unknown;
   status?: "pending" | "confirmed";
+  /** Allow a payment smaller than the invoice (admin decision only). */
+  allowPartial?: boolean;
 }
 
 export function markInvoicePaid(input: MarkPaidInput): Invoice {
@@ -152,6 +154,13 @@ export function markInvoicePaid(input: MarkPaidInput): Invoice {
     input.currency === "CNY"
       ? Math.round((input.amount / (invoice.fx_rate || 1)) * 100) / 100
       : input.amount;
+
+  if (!input.allowPartial && amountUsd + settings.automation.toleranceUsd < invoice.amount_usd) {
+    throw new BillingError(
+      `Received ${amountUsd.toFixed(2)} USD against an invoice of ${invoice.amount_usd.toFixed(2)} USD. ` +
+        "Tick “accept partial payment” if this is intentional.",
+    );
+  }
 
   return tx(() => {
     const at = nowIso();
@@ -178,12 +187,16 @@ export function markInvoicePaid(input: MarkPaidInput): Invoice {
         input.status === "pending" ? null : at,
       );
 
-    db()
+    const update = db()
       .prepare(
         `UPDATE invoices SET status = 'paid', paid_at = ?, method = ?, payer_note = COALESCE(?, payer_note),
-           submitted_at = COALESCE(submitted_at, ?), verified_by = ? WHERE id = ?`,
+           submitted_at = COALESCE(submitted_at, ?), verified_by = ?
+         WHERE id = ? AND status IN ('awaiting_payment','submitted','overdue')`,
       )
       .run(at, input.method, input.note ?? null, at, input.actor, invoice.id);
+    if (Number(update.changes) !== 1) {
+      throw new BillingError("This invoice is no longer payable (already paid or void).");
+    }
 
     refreshPaidThrough(invoice.user_id);
     event(input.actor, "invoice.paid", {
@@ -211,11 +224,15 @@ export function submitInvoice(
     throw new BillingError("This invoice is not awaiting a payment report.");
   }
   tx(() => {
-    db()
+    const update = db()
       .prepare(
-        "UPDATE invoices SET status = 'submitted', submitted_at = ?, method = ?, payer_note = ? WHERE id = ?",
+        "UPDATE invoices SET status = 'submitted', submitted_at = ?, method = ?, payer_note = ? " +
+          "WHERE id = ? AND status IN ('awaiting_payment','overdue')",
       )
       .run(nowIso(), input.method, input.note ?? null, invoice.id);
+    if (Number(update.changes) !== 1) {
+      throw new BillingError("This invoice is no longer awaiting a payment report.");
+    }
 
     const amountUsd =
       input.currency === "CNY" ? Math.round((input.amount / (invoice.fx_rate || 1)) * 100) / 100 : input.amount;
@@ -251,7 +268,10 @@ export function voidInvoice(invoiceId: string, actor: string | null) {
   if (!invoice) throw new BillingError("Invoice not found.");
   if (invoice.status === "paid") throw new BillingError("Paid invoices cannot be voided. Refund manually first.");
   tx(() => {
-    db().prepare("UPDATE invoices SET status = 'void', voided_at = ? WHERE id = ?").run(nowIso(), invoiceId);
+    const update = db()
+      .prepare("UPDATE invoices SET status = 'void', voided_at = ? WHERE id = ? AND status <> 'paid'")
+      .run(nowIso(), invoiceId);
+    if (Number(update.changes) !== 1) throw new BillingError("Invoice could not be voided.");
     event(actor, "invoice.voided", { invoiceId });
   });
 }
@@ -261,8 +281,44 @@ export function markOverdue(now = today(getSettings().plan.timezone)): number {
   const cutoff = addDays(now, -settings.plan.graceDays);
   const result = db()
     .prepare(
-      "UPDATE invoices SET status = 'overdue' WHERE status IN ('awaiting_payment','submitted') AND due_date < ? AND status <> 'void'",
+      "UPDATE invoices SET status = 'overdue' WHERE status = 'awaiting_payment' AND due_date < ?",
     )
     .run(cutoff);
   return Number(result.changes ?? 0);
+}
+
+/**
+ * Confirm a pending payment row (member report or ingest match) and mark its
+ * invoice paid in one transaction. Unlike markInvoicePaid this does NOT insert
+ * a second payment record.
+ */
+export function confirmExistingPayment(paymentId: string, actor: string | null): Invoice {
+  const payment = db().prepare("SELECT * FROM payments WHERE id = ?").get(paymentId) as unknown as Payment | undefined;
+  if (!payment) throw new BillingError("Payment not found.");
+  if (payment.status !== "pending") throw new BillingError("This payment was already handled.");
+
+  const invoice = db()
+    .prepare("SELECT * FROM invoices WHERE id = ?")
+    .get(payment.invoice_id) as unknown as Invoice | undefined;
+  if (!invoice) throw new BillingError("Invoice not found.");
+
+  return tx(() => {
+    const at = nowIso();
+    const confirmed = db()
+      .prepare("UPDATE payments SET status = 'confirmed', confirmed_at = ? WHERE id = ? AND status = 'pending'")
+      .run(at, paymentId);
+    if (Number(confirmed.changes) !== 1) throw new BillingError("This payment was already handled.");
+
+    const updated = db()
+      .prepare(
+        `UPDATE invoices SET status = 'paid', paid_at = ?, method = ?, submitted_at = COALESCE(submitted_at, ?),
+           verified_by = ? WHERE id = ? AND status IN ('awaiting_payment','submitted','overdue')`,
+      )
+      .run(at, payment.method, at, actor, invoice.id);
+    if (Number(updated.changes) !== 1) throw new BillingError("This invoice is no longer payable.");
+
+    refreshPaidThrough(invoice.user_id);
+    event(actor, "invoice.paid", { invoiceId: invoice.id, paymentId, source: "confirm", amount: payment.amount });
+    return db().prepare("SELECT * FROM invoices WHERE id = ?").get(invoice.id) as unknown as Invoice;
+  });
 }

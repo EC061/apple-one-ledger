@@ -87,7 +87,8 @@ settings if you want anonymous pulls.
 | --- | --- | --- |
 | `SESSION_SECRET` | yes | Peppers access-code hashes and session tokens. Changing it invalidates all member codes. |
 | `ADMIN_REG_CODE` | yes | Password for `/admin/login`. Never written to the database. |
-| `INGEST_TOKEN` | recommended | Bearer token for payment + storage ingest endpoints. |
+| `INGEST_TOKEN` | recommended | Bearer token for `/api/payments/ingest` (can mark invoices paid). |
+| `STORAGE_TOKEN` | recommended | Separate bearer token for `/api/storage/update`. Falls back to `INGEST_TOKEN` if unset. |
 | `CRON_SECRET` | recommended | Bearer token for `/api/cron/daily`. |
 | `APP_URL` | optional | Canonical public URL (e.g. `https://plan.example.com`). Without it, links follow `X-Forwarded-Proto` / `X-Forwarded-Host`. |
 | `APP_TIMEZONE` | optional | IANA zone for "today", due dates, digests. Default `UTC`. |
@@ -147,7 +148,7 @@ server {
 
 ### The flow
 
-1. Member picks a term → invoice with a unique reference like `A1-7F3K2Q`.
+1. Member picks a term → invoice with a unique reference like `A1-7F3K2QW`.
 2. Member pays by WeChat / Alipay / Venmo / Zelle, **putting the reference in the note**.
 3. Member clicks “I have sent this payment” → invoice becomes `submitted`.
 4. Admin confirms → invoice `paid`, coverage extends, receipt email sent.
@@ -181,7 +182,7 @@ Two supported paths:
    `toleranceUsd` (default $0.50) settle the invoice; anything else becomes a pending payment
    for the admin to approve or reject. Transactions are unique by `txRef`, so retries are safe.
 2. **IMAP polling** (best-effort, off by default). Enable in Settings → Automation and give the
-   mailbox that receives payment notifications. Unread mail is scanned for an `A1-XXXXXX`
+   mailbox that receives payment notifications. Unread mail is scanned for an `A1-XXXXXXXX`
    reference and a `$`/`¥` amount; matching mail is marked read. Provider email formats change,
    so treat this as a convenience, not a contract.
 
@@ -190,7 +191,7 @@ curl -X POST https://plan.example.com/api/payments/ingest \
   -H "Authorization: Bearer $INGEST_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "reference": "A1-7F3K2Q",
+    "reference": "A1-7F3K2QW",
     "amount": 45.00,
     "currency": "USD",
     "method": "venmo",
@@ -218,24 +219,60 @@ are shown as stale and never trigger email.
 the Apple family, set it to 5 so the other members keep their real share.
 
 **Can it be fully automatic?** Not from Apple. Family iCloud+ usage is visible to the organizer
-in Settings → Family → iCloud+ and on iCloud.com, but there is no public API, and scraping
-requires the organizer's password plus 2FA (and iCloud's terms forbid automated access). So
-usage is **reported**, through either:
+in Settings → Family → Subscriptions → iCloud+ (and on iCloud.com), but there is no public API,
+no plist/backup field, and no Shortcuts action for it. Scraping iCloud requires the organizer's
+password plus 2FA and conflicts with Apple's terms. The realistic automation is: **read the
+screen once, submit the numbers once.**
 
-- **Admin → Members** → the `GB` field on each member row (manual, takes 20 seconds), or
-- `POST /api/storage/update`:
+Two endpoints do that, both Bearer `STORAGE_TOKEN`:
+
+### Batch observation (recommended)
+
+```bash
+curl -X POST https://plan.example.com/api/storage/observations \
+  -H "Authorization: Bearer $STORAGE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "observationId": "6f0c2a3e-7d1b-4c55-9a51-2d6a1b0c9e77",
+    "observedAt": "2026-11-01T14:00:00Z",
+    "source": "ios-shortcut-confirmed",
+    "readings": [
+      { "email": "sam@example.com", "usedGb": 342.5 },
+      { "email": "alex@example.com", "usedGb": 188.0 }
+    ]
+  }'
+```
+
+- `observationId` is the idempotency key: replaying the same payload returns `200` with
+  `"duplicate": true`; reusing the id with different numbers returns `409`.
+- One request stores every member at the same `observedAt`, so a batch cannot half-apply.
+- Unknown members and out-of-range values are reported in `skipped` and do not block the rest.
+- Every accepted value is also written to `storage_readings` (who, when, source) for auditing.
+
+### Single value
 
 ```bash
 curl -X POST https://plan.example.com/api/storage/update \
-  -H "Authorization: Bearer $INGEST_TOKEN" \
+  -H "Authorization: Bearer $STORAGE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{ "email": "sam@example.com", "usedGb": 342.5 }'
 ```
 
-The endpoint rejects values above the whole pool (a common bytes-vs-GB typo), records every
-reading in `storage_readings` for auditing, and returns the quota and percentage. A monthly
-manual check, or a small script that reads the organizer's screen, is the realistic level of
-automation. That is a deliberate product decision, not a missing feature.
+The endpoint rejects values above the whole pool (a common bytes-vs-GB typo) and returns the
+quota and percentage.
+
+### iOS Shortcut (4–8 h build, low risk)
+
+1. Open **Settings → Family → Subscriptions → iCloud+** (or **Settings → [name] → iCloud →
+   Storage → Family Usage** where shown) and take a screenshot showing all members.
+2. Shortcut: **Extract Text from Image →** (optional) **Ask for Input** to correct the numbers
+   **→ Get Contents of URL**, method `POST`, JSON body matching the contract above, header
+   `Authorization: Bearer …`.
+3. Add it to the Share Sheet so the screenshot is the input, and have the Shortcut ask you to
+   confirm before submitting.
+
+Apple does not partition the pool, so this is a **fair-share guideline**: one member over quota
+does not block anyone, it just leaves less for the rest.
 
 ## Email
 

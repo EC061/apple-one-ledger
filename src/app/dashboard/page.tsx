@@ -20,10 +20,11 @@ export const dynamic = "force-dynamic";
 
 const ERRORS: Record<string, string> = {
   plan: "Pick a valid term.",
-  open: "You already have an open invoice. Pay or cancel it first.",
+  open: "You already have an open invoice. Pay it, or ask the admin to void it.",
   name: "Enter your name (2–60 characters).",
   email: "Enter a valid email address.",
   emailused: "That email is already used by another member.",
+  fx: "No USD→CNY rate is available. Ask the admin to set a rate in Settings → Exchange rate.",
 };
 
 export default async function DashboardPage({
@@ -94,9 +95,9 @@ export default async function DashboardPage({
               tone={open ? "warn" : undefined}
             />
             <Stat
-              label="Your next term"
-              value={PLANS[open?.plan ?? "quarterly"].label}
-              sub={`Term ${termIndex} · ${termIndex <= 1 ? "first-term price" : "renewal price"}`}
+              label="Term"
+              value={`Term ${termIndex}`}
+              sub={termIndex <= 1 ? "first-term pricing applies" : "renewal pricing applies"}
             />
             <Stat
               label="Storage"
@@ -187,6 +188,12 @@ export default async function DashboardPage({
           ) : (
             <div className="stack">
               <NextTermNotice pricing={settings.pricing} termIndex={termIndex} />
+              <div>
+                <h2>Choose a term</h2>
+                <p className="muted small" style={{ marginBottom: 0 }}>
+                  This creates an invoice you can pay now; coverage starts the day after your current term ends.
+                </p>
+              </div>
               <div className="price-grid">
                 {PLAN_ORDER.map((key) => {
                   const plan = PLANS[key];
@@ -205,7 +212,7 @@ export default async function DashboardPage({
                         </div>
                         <div className="spacer" style={{ minHeight: 10 }} />
                         <SubmitButton className="btn btn-primary btn-block" pending="Creating invoice…">
-                          Choose {plan.label.toLowerCase()}
+                          Choose {plan.label.toLowerCase()} · {formatMoney(price)}
                         </SubmitButton>
                       </div>
                     </form>
@@ -236,7 +243,9 @@ export default async function DashboardPage({
                   <tbody>
                     {history.map((invoice) => (
                       <tr key={invoice.id}>
-                        <td className="mono small">{invoice.reference}</td>
+                        <td className="mono small">
+                          <Link href={`/dashboard/pay/${invoice.id}`}>{invoice.reference}</Link>
+                        </td>
                         <td>
                           <div>{formatDate(invoice.period_start)} – {formatDate(invoice.period_end)}</div>
                           <div className="muted small">

@@ -1,4 +1,5 @@
-import { db, newId, nowIso, event } from "./db";
+import { db, newId, nowIso, event, tx } from "./db";
+import { createHash } from "node:crypto";
 import { getSettings } from "./settings";
 import { daysBetween, parseDate, today } from "./dates";
 import { sendStorageAlertEmail } from "./email";
@@ -181,4 +182,115 @@ export function storageTotals(day = today(getSettings().plan.timezone)) {
     quotaGb: quotaGb(settings),
     percent: (usedGb / Math.max(settings.storage.totalGb, 1)) * 100,
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* Batch observations                                                  */
+/* ------------------------------------------------------------------ */
+
+export class StorageConflictError extends Error {}
+
+export interface ObservationReading {
+  memberId?: string;
+  email?: string;
+  usedGb: number;
+}
+
+export interface ObservationInput {
+  observationId: string;
+  observedAt: string;
+  source?: string;
+  readings: ObservationReading[];
+}
+
+export interface ObservationResult {
+  observationId: string;
+  duplicate: boolean;
+  applied: number;
+  skipped: { reading: ObservationReading; reason: string }[];
+}
+
+/**
+ * Record one batch of per-member readings (e.g. from an iOS Shortcut that OCRs
+ * the Family Sharing screen). Idempotent: replaying the same observationId with
+ * the same payload returns `duplicate: true`; reusing it with different values
+ * throws StorageConflictError.
+ */
+export function recordObservation(input: ObservationInput, actor: string | null): ObservationResult {
+  const settings = getSettings();
+  if (!settings.storage.enabled) throw new StorageError("Storage tracking is disabled in settings.");
+  if (!/^[A-Za-z0-9._:-]{8,80}$/.test(input.observationId)) {
+    throw new StorageError("observationId must be 8–80 characters of [A-Za-z0-9._:-].");
+  }
+  if (!Array.isArray(input.readings) || input.readings.length === 0) {
+    throw new StorageError("At least one reading is required.");
+  }
+
+  const payload = JSON.stringify({
+    observedAt: input.observedAt,
+    source: input.source ?? "unknown",
+    readings: input.readings,
+  });
+  const fingerprint = createHash("sha256").update(payload).digest("hex");
+
+  const existing = db()
+    .prepare("SELECT payload FROM storage_observations WHERE id = ?")
+    .get(input.observationId) as { payload: string } | undefined;
+  if (existing) {
+    if (existing.payload === fingerprint) {
+      return { observationId: input.observationId, duplicate: true, applied: 0, skipped: [] };
+    }
+    throw new StorageConflictError("observationId was already used with different readings.");
+  }
+
+  const observedAt = new Date(input.observedAt);
+  if (Number.isNaN(observedAt.getTime())) throw new StorageError("observedAt must be an ISO-8601 timestamp.");
+  if (observedAt.getTime() > Date.now() + 10 * 60_000) {
+    throw new StorageError("observedAt cannot be in the future.");
+  }
+
+  const skipped: ObservationResult["skipped"] = [];
+  let applied = 0;
+
+  tx(() => {
+    db()
+      .prepare("INSERT INTO storage_observations (id, source, observed_at, payload, created_at) VALUES (?, ?, ?, ?, ?)")
+      .run(
+        input.observationId,
+        input.source ?? "unknown",
+        observedAt.toISOString(),
+        fingerprint,
+        nowIso(),
+      );
+
+    for (const reading of input.readings) {
+      const user = (
+        reading.memberId
+          ? db().prepare("SELECT * FROM users WHERE id = ? AND status = 'active'").get(reading.memberId)
+          : db()
+              .prepare("SELECT * FROM users WHERE lower(email) = ? AND status = 'active'")
+              .get((reading.email || "").toLowerCase())
+      ) as unknown as User | undefined;
+
+      if (!user) {
+        skipped.push({ reading, reason: "member not found" });
+        continue;
+      }
+      if (!Number.isFinite(reading.usedGb) || reading.usedGb < 0 || reading.usedGb > settings.storage.totalGb) {
+        skipped.push({ reading, reason: "usedGb out of range" });
+        continue;
+      }
+
+      db()
+        .prepare("UPDATE users SET storage_used_gb = ?, storage_updated_at = ?, updated_at = ? WHERE id = ?")
+        .run(reading.usedGb, observedAt.toISOString(), nowIso(), user.id);
+      db()
+        .prepare("INSERT INTO storage_readings (id, user_id, used_gb, source, actor, recorded_at) VALUES (?, ?, ?, ?, ?, ?)")
+        .run(newId(), user.id, reading.usedGb, `observation:${input.observationId}`, actor, observedAt.toISOString());
+      applied += 1;
+    }
+  });
+
+  event(actor, "storage.observation", { observationId: input.observationId, applied, skipped: skipped.length });
+  return { observationId: input.observationId, duplicate: false, applied, skipped };
 }

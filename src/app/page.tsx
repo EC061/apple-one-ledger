@@ -41,7 +41,7 @@ export default async function HomePage() {
         <section className="hero">
           <div className="container">
             <span className="eyebrow">Invite-only · {plan.seats} seats</span>
-            <h1>One family plan. Six people. Zero spreadsheets.</h1>
+            <h1>One family plan. {plan.seats} people. Zero spreadsheets.</h1>
             <p className="lede">
               A private ledger for our shared {plan.name} subscription. See exactly what you owe, pay in USD or
               CNY, and keep your seat covered — no group chat archaeology.
@@ -91,7 +91,7 @@ export default async function HomePage() {
                   </div>
                   <div className="price-note">{definition.cadence} · {definition.months} months of coverage</div>
                   <div className="price-renew">
-                    Renews at {formatMoney(renewal)} from the second term
+                    Second term onward: {formatMoney(renewal)}
                   </div>
                 </div>
               );
@@ -120,7 +120,7 @@ export default async function HomePage() {
                 reference code on your invoice.
               </li>
               <li>
-                <strong>Reminders</strong> go out by email before the due date. Seats unpaid after a {plan.graceDays}-day
+                <strong>Reminders</strong> go out by email for every open term. Seats unpaid after a {plan.graceDays}-day
                 grace period are flagged for removal.
               </li>
               <li>

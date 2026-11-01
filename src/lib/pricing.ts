@@ -38,7 +38,7 @@ export function perSeatMonthly(pricing: PricingSettings, seats: number): number 
 const REFERENCE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 export function newReference(): string {
-  const bytes = new Uint8Array(6);
+  const bytes = new Uint8Array(8);
   crypto.getRandomValues(bytes);
   let out = "";
   for (const byte of bytes) out += REFERENCE_ALPHABET[byte % REFERENCE_ALPHABET.length];
@@ -49,4 +49,4 @@ export function normalizeReference(value: string): string {
   return value.trim().toUpperCase().replace(/\s+/g, "");
 }
 
-export const REFERENCE_PATTERN = /\bA1-[A-HJ-NP-Z2-9]{6}\b/gi;
+export const REFERENCE_PATTERN = /\bA1-[A-HJ-NP-Z2-9]{6,10}\b/gi;

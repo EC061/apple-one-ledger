@@ -89,10 +89,10 @@ export default async function JoinPage({
             <strong>{formatMoney(settings.pricing.firstTerm.semiannual)}</strong> half-year ·{" "}
             <strong>{formatMoney(settings.pricing.firstTerm.annual)}</strong> annual.
             <br />
-            Renewals: <strong>{formatMoney(settings.pricing.renewal.quarterly)}</strong> ·{" "}
-            <strong>{formatMoney(settings.pricing.renewal.semiannual)}</strong> ·{" "}
-            <strong>{formatMoney(settings.pricing.renewal.annual)}</strong>. You choose the term after joining and see
-            the exact renewal price on every invoice.
+            Renewals: <strong>{formatMoney(settings.pricing.renewal.quarterly)}</strong> quarterly ·{" "}
+            <strong>{formatMoney(settings.pricing.renewal.semiannual)}</strong> half-year ·{" "}
+            <strong>{formatMoney(settings.pricing.renewal.annual)}</strong> annual. You choose the term after joining and
+            see the exact renewal price on every invoice.
           </div>
         </div>
 

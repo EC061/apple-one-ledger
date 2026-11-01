@@ -28,9 +28,19 @@ export function normalizeCode(value: string): string {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
+function pepper(): string {
+  const secret = process.env.SESSION_SECRET || "";
+  if (secret.length >= 32) return secret;
+  if (process.env.NODE_ENV !== "production") return "dev-only-insecure-secret";
+  throw new Error("SESSION_SECRET must be set to at least 32 characters before anyone can sign in.");
+}
+
 export function hashAccessCode(code: string): string {
-  const pepper = process.env.SESSION_SECRET || "applecare-one-tracker";
-  return createHash("sha256").update(`${pepper}:${normalizeCode(code)}`).digest("hex");
+  return createHash("sha256").update(`${pepper()}:${normalizeCode(code)}`).digest("hex");
+}
+
+export function sessionSecretOk(): boolean {
+  return (process.env.SESSION_SECRET || "").length >= 32;
 }
 
 export function verifyAccessCode(code: string, hash: string | null): boolean {

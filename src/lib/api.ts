@@ -17,10 +17,7 @@ export function bearerAuthorized(request: Request, secret: string | undefined): 
 }
 
 export function cronAuthorized(request: Request, secret: string | undefined): boolean {
-  if (!secret || secret.length < 8) return false;
-  if (bearerAuthorized(request, secret)) return true;
-  const token = new URL(request.url).searchParams.get("token") || "";
-  return token.length > 0 && constantTimeEqual(token, secret);
+  return bearerAuthorized(request, secret);
 }
 
 export function json(data: unknown, status = 200): Response {

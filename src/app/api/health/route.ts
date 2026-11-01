@@ -8,6 +8,7 @@ export async function GET() {
     db().prepare("SELECT 1 AS ok").get();
     return json({ ok: true, database: "up", time: new Date().toISOString() });
   } catch (error) {
-    return json({ ok: false, database: "down", error: (error as Error).message }, 503);
+    console.error("[health] database check failed", error);
+    return json({ ok: false, database: "down" }, 503);
   }
 }

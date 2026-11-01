@@ -59,7 +59,8 @@ export default async function SettingsPage({
         </div>
         <div className="row small muted">
           <Link href="#pricing">Pricing</Link>·<Link href="#payments">Payments</Link>·<Link href="#email">Email</Link>·
-          <Link href="#storage">Storage</Link> · <Link href="#automation">Automation</Link>
+          <Link href="#fx">FX</Link>·<Link href="#reminders">Reminders</Link>·<Link href="#storage">Storage</Link>·
+          <Link href="#automation">Automation</Link>·<Link href="#profile">Profile</Link>
         </div>
       </div>
 
@@ -552,7 +553,7 @@ export default async function SettingsPage({
         </div>
         <div className="card-body stack">
           <div className="notice">
-            <strong>How it works.</strong> Each invoice has a reference like <span className="mono">A1-7F3K2Q</span>.
+            <strong>How it works.</strong> Each invoice has a reference like <span className="mono">A1-7F3K2QW</span>.
             Your payment provider or bank notification (or a forwarding rule) POSTs the reference, amount and method to
             the ingest endpoint. Matching payments are marked paid automatically; mismatches are queued for review.
             There is no public API for personal WeChat / Alipay / Venmo / Zelle accounts, so this endpoint is the

@@ -17,7 +17,7 @@ function open(): DatabaseSync {
   const database = new DatabaseSync(DB_PATH);
   database.exec(`
     PRAGMA journal_mode = WAL;
-    PRAGMA synchronous = NORMAL;
+    PRAGMA synchronous = FULL;
     PRAGMA foreign_keys = ON;
     PRAGMA busy_timeout = 5000;
     PRAGMA temp_store = MEMORY;
@@ -127,6 +127,14 @@ CREATE TABLE IF NOT EXISTS settings (
   updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS storage_observations (
+  id          TEXT PRIMARY KEY,
+  source      TEXT NOT NULL,
+  observed_at TEXT NOT NULL,
+  payload     TEXT NOT NULL,
+  created_at  TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS storage_readings (
   id          TEXT PRIMARY KEY,
   user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -180,10 +188,15 @@ function ensureColumn(database: DatabaseSync, table: string, column: string, def
   }
 }
 
-/** Run a synchronous write inside an immediate transaction. */
+let txDepth = 0;
+
+/** Run a synchronous write inside an immediate transaction (nesting-safe). */
 export function tx<T>(fn: () => T): T {
+  if (txDepth > 0) return fn();
+
   const database = db();
   database.exec("BEGIN IMMEDIATE");
+  txDepth += 1;
   try {
     const result = fn();
     database.exec("COMMIT");
@@ -195,6 +208,8 @@ export function tx<T>(fn: () => T): T {
       /* ignore rollback failure */
     }
     throw error;
+  } finally {
+    txDepth -= 1;
   }
 }
 

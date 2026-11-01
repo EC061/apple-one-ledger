@@ -1,10 +1,10 @@
-"use server";
+import "server-only";
 import { cookies } from "next/headers";
 
 /**
  * Hand a freshly generated access code to the next page view.
- * Deliberately readable by JS: a small client component copies it into
- * component state and immediately deletes the cookie.
+ * Readable by JS so a small client component can clear it after the first
+ * render; the page itself renders the value server-side (works without JS).
  */
 export async function setAccessCodeFlash(code: string) {
   const store = await cookies();
@@ -14,4 +14,9 @@ export async function setAccessCodeFlash(code: string) {
     path: "/",
     maxAge: 300,
   });
+}
+
+export async function readAccessCodeFlash(): Promise<string | null> {
+  const store = await cookies();
+  return store.get("a1_access_code")?.value ?? null;
 }

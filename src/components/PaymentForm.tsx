@@ -10,16 +10,21 @@ export default function PaymentForm({
   amountCny,
   rate,
   method,
+  methods,
 }: {
   invoiceId: string;
   amountUsd: number;
   amountCny: number;
   rate: number;
   method: string | null;
+  methods: { value: string; label: string }[];
 }) {
   const [currency, setCurrency] = useState<"USD" | "CNY">("USD");
   const [value, setValue] = useState(amountUsd.toFixed(2));
-  const [selected, setSelected] = useState(method || "venmo");
+  const first = methods[0]?.value ?? "";
+  const [selected, setSelected] = useState(
+    method && methods.some((entry) => entry.value === method) ? method : first,
+  );
 
   function changeCurrency(next: "USD" | "CNY") {
     setCurrency(next);
@@ -88,10 +93,11 @@ export default function PaymentForm({
             value={selected}
             onChange={(event) => setSelected(event.target.value)}
           >
-            <option value="venmo">Venmo</option>
-            <option value="zelle">Zelle</option>
-            <option value="wechat">WeChat Pay</option>
-            <option value="alipay">Alipay</option>
+            {methods.map((entry) => (
+              <option key={entry.value} value={entry.value}>
+                {entry.label}
+              </option>
+            ))}
           </select>
         </div>
 

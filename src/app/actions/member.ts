@@ -29,6 +29,7 @@ export async function createInvoiceAction(formData: FormData) {
   let invoiceId: string;
   try {
     const rate = await getCurrentRate();
+    if (rate.source === "fallback") redirect("/dashboard?error=fx");
     const invoice = createInvoice({
       userId: user.id,
       plan,
@@ -54,13 +55,20 @@ export async function submitPaymentAction(formData: FormData) {
   const invoiceId = text(formData, "invoiceId");
   const method = text(formData, "method");
   const currency = text(formData, "currency") === "CNY" ? "CNY" : "USD";
-  const value = amount(formData, "amount");
+  let value = amount(formData, "amount");
   const txRef = text(formData, "txRef");
   const note = text(formData, "note");
 
   const invoice = db().prepare("SELECT * FROM invoices WHERE id = ?").get(invoiceId) as unknown as Invoice | undefined;
   if (!invoice || (invoice.user_id !== user.id && user.role !== "admin")) redirect("/dashboard");
   if (!isPaymentMethod(method)) redirect(`/dashboard/pay/${invoiceId}?error=method`);
+
+  // No-JS fallback: the amount field is seeded in USD. If the member switched
+  // the currency radio without JS, the value still equals the USD amount, so
+  // swap in the locked CNY figure instead of recording $45 as ¥45.
+  if (currency === "CNY" && value === invoice.amount_usd) value = invoice.amount_cny;
+  if (currency === "USD" && value === invoice.amount_cny) value = invoice.amount_usd;
+
   if (!Number.isFinite(value) || value <= 0) redirect(`/dashboard/pay/${invoiceId}?error=amount`);
 
   try {

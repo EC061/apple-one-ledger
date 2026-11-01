@@ -6,6 +6,7 @@ services:
     image: ${IMAGE_NAME:-applecare-one-tracker:local}
     container_name: applecare-one-tracker
     restart: unless-stopped
+    init: true
     ports:
       - "${PORT:-3000}:3000"
     env_file:

@@ -16,6 +16,7 @@ import {
   verifyAdminCode,
 } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
+import { today } from "@/lib/dates";
 import { sendAccessCodeEmail } from "@/lib/email";
 import { setAccessCodeFlash } from "@/lib/flash";
 import { getBaseUrl, requestMeta } from "@/lib/url";
@@ -93,7 +94,7 @@ export async function joinAction(formData: FormData) {
   const invite = db().prepare("SELECT * FROM invites WHERE code = ?").get(code) as unknown as Invite | undefined;
   if (!invite || invite.revoked_at) redirect("/login?error=invite");
   if (invite.used_at) redirect("/login?error=used");
-  if (invite.expires_at && invite.expires_at < new Date().toISOString().slice(0, 10)) {
+  if (invite.expires_at && invite.expires_at < today(getSettings().plan.timezone)) {
     redirect("/login?error=expired");
   }
 

@@ -1,27 +1,9 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import { readAccessCodeFlash } from "@/lib/flash";
 import CopyButton from "./CopyButton";
+import ClearFlashCookie from "./ClearFlashCookie";
 
-function readCookie(name: string): string | null {
-  const prefix = `${name}=`;
-  for (const part of document.cookie.split(";")) {
-    const value = part.trim();
-    if (value.startsWith(prefix)) return decodeURIComponent(value.slice(prefix.length));
-  }
-  return null;
-}
-
-export default function AccessCodeFlash({ label = "Your new access code" }: { label?: string }) {
-  const [code, setCode] = useState<string | null>(null);
-
-  useEffect(() => {
-    const value = readCookie("a1_access_code");
-    if (!value) return;
-    document.cookie = "a1_access_code=; Max-Age=0; path=/; SameSite=Lax";
-    setCode(value);
-  }, []);
-
+export default async function AccessCodeFlash({ label = "Your new access code" }: { label?: string }) {
+  const code = await readAccessCodeFlash();
   if (!code) return null;
 
   return (
@@ -38,6 +20,7 @@ export default function AccessCodeFlash({ label = "Your new access code" }: { la
       <div className="code-box" style={{ marginTop: 10, background: "#fff" }}>
         {code}
       </div>
+      <ClearFlashCookie />
     </div>
   );
 }

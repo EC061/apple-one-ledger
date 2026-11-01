@@ -6,7 +6,7 @@ import SubmitButton from "@/components/SubmitButton";
 export const dynamic = "force-dynamic";
 
 const ERRORS: Record<string, string> = {
-  invalid: "That access code was not recognised. Check for typos and try again.",
+  invalid: "That access code was not recognised. Check for typos, or ask the admin to reset it.",
   empty: "Enter your access code.",
   removed: "Your seat has been removed from this plan. Contact the admin.",
   rate: "Too many attempts. Wait 15 minutes and try again.",

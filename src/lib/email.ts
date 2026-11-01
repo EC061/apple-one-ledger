@@ -3,7 +3,7 @@ import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 import { db, newId, nowIso } from "./db";
 import { getSettings } from "./settings";
-import { formatDate, formatMoney } from "./dates";
+import { formatDate, formatMoney, today } from "./dates";
 import { getBaseUrl } from "./url";
 import type { Invoice, User } from "./types";
 
@@ -235,7 +235,7 @@ export async function sendReminderEmail(input: {
     text,
     html: layout(overdue ? "Payment overdue" : "Payment reminder", body, "You can update your contact details from the dashboard."),
     kind: input.kind,
-    dedupeKey: `${input.kind}:${invoice.id}:${new Date().toISOString().slice(0, 10)}`,
+    dedupeKey: `${input.kind}:${invoice.id}:${today(getSettings().plan.timezone)}`,
   });
 }
 
@@ -266,7 +266,7 @@ export async function sendRemovalWarningEmail(input: { user: User; invoice: Invo
       "This is an automated notice from the family plan admin.",
     ),
     kind: "removal-warning",
-    dedupeKey: `removal:${invoice.id}:${new Date().toISOString().slice(0, 10)}`,
+    dedupeKey: `removal:${invoice.id}:${today(getSettings().plan.timezone)}`,
   });
 }
 
@@ -298,6 +298,7 @@ export async function sendReceiptEmail(input: { user: User; invoice: Invoice; ba
       "Keep this email as your receipt.",
     ),
     kind: "receipt",
+    dedupeKey: `receipt:${invoice.id}`,
   });
 }
 
@@ -358,7 +359,7 @@ export async function sendDigestEmail(input: {
     text,
     html,
     kind: "digest",
-    dedupeKey: `digest:${new Date().toISOString().slice(0, 10)}`,
+    dedupeKey: `digest:${today(getSettings().plan.timezone)}`,
   });
 }
 

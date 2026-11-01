@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { formatDate, formatDateTime, formatMoney, relativeDays } from "@/lib/dates";
-import { PLANS } from "@/lib/pricing";
+import { PLANS, priceFor } from "@/lib/pricing";
 import TopBar from "@/components/TopBar";
 import PaymentForm from "@/components/PaymentForm";
 import CopyButton from "@/components/CopyButton";
@@ -38,12 +38,15 @@ export default async function PayPage({
   const canPay = invoice.status === "awaiting_payment" || invoice.status === "overdue";
   const isAdminView = user.role === "admin";
 
-  const methods = [
+  const methodRows = [
     { key: "venmo", label: "Venmo", value: pay.venmoHandle ? `@${pay.venmoHandle}` : "" },
     { key: "zelle", label: "Zelle", value: pay.zelleEmail },
     { key: "wechat", label: "WeChat Pay", value: pay.wechatId, qr: pay.wechatQrUrl },
     { key: "alipay", label: "Alipay", value: pay.alipayId, qr: pay.alipayQrUrl },
   ];
+  const configuredMethods = methodRows
+    .filter((row) => row.value)
+    .map((row) => ({ value: row.key, label: row.label }));
 
   return (
     <div className="page">
@@ -117,6 +120,16 @@ export default async function PayPage({
                   <dl className="dt small">
                     <dt>Pricing</dt>
                     <dd>{invoice.term_index <= 1 ? "First term (introductory price)" : `Renewal (term ${invoice.term_index})`}</dd>
+                    <dt>This term</dt>
+                    <dd>
+                      {formatMoney(invoice.amount_usd)} now
+                      {invoice.term_index <= 1 ? " (introductory)" : " (renewal)"}
+                    </dd>
+                    <dt>Next renewal</dt>
+                    <dd>
+                      {formatMoney(priceFor(invoice.plan, invoice.term_index + 1, settings.pricing))} after{" "}
+                      {formatDate(invoice.period_end)}
+                    </dd>
                     <dt>FX rate</dt>
                     <dd>
                       1 USD = {invoice.fx_rate.toFixed(4)} CNY · locked {invoice.fx_date}
@@ -141,13 +154,21 @@ export default async function PayPage({
                     <h2>Report your payment</h2>
                   </div>
                   <div className="card-body">
-                    <PaymentForm
-                      invoiceId={invoice.id}
-                      amountUsd={invoice.amount_usd}
-                      amountCny={invoice.amount_cny}
-                      rate={invoice.fx_rate}
-                      method={invoice.method}
-                    />
+                    {configuredMethods.length === 0 ? (
+                      <Notice tone="warn">
+                        The admin has not published payment details yet. Ask them to fill in WeChat / Alipay / Venmo /
+                        Zelle under Admin → Settings → Payment details.
+                      </Notice>
+                    ) : (
+                      <PaymentForm
+                        invoiceId={invoice.id}
+                        amountUsd={invoice.amount_usd}
+                        amountCny={invoice.amount_cny}
+                        rate={invoice.fx_rate}
+                        method={invoice.method}
+                        methods={configuredMethods}
+                      />
+                    )}
                   </div>
                 </div>
               ) : (
@@ -156,6 +177,9 @@ export default async function PayPage({
                   <p className="muted small" style={{ marginBottom: 12 }}>
                     This invoice is {invoice.status.replace("_", " ")}.{" "}
                     {invoice.status === "paid" ? `Your coverage runs until ${formatDate(invoice.period_end)}.` : ""}
+                    {invoice.status === "submitted"
+                      ? " If you reported the wrong amount or method, ask the admin to correct or void it."
+                      : ""}
                   </p>
                   <Link href={isAdminView ? "/admin/invoices" : "/dashboard"} className="btn btn-secondary">
                     Back to {isAdminView ? "invoices" : "dashboard"}
@@ -176,7 +200,7 @@ export default async function PayPage({
                     </div>
                   ) : null}
 
-                  {methods.map((item) => (
+                  {methodRows.map((item) => (
                     <div key={item.key} style={{ borderBottom: "1px solid var(--line)", paddingBottom: 10 }}>
                       <div className="row-between">
                         <span className="strong small">{item.label}</span>

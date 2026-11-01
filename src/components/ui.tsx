@@ -69,7 +69,11 @@ export function Notice({
 }) {
   const className =
     tone === "ok" ? "notice notice-ok" : tone === "warn" ? "notice notice-warn" : tone === "error" ? "notice notice-error" : "notice";
-  return <div className={className}>{children}</div>;
+  return (
+    <div className={className} role={tone === "error" ? "alert" : "status"}>
+      {children}
+    </div>
+  );
 }
 
 export function Empty({ children }: { children: React.ReactNode }) {

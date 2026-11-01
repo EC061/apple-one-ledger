@@ -4,7 +4,7 @@
   --surface-2: #fafbfa;
   --ink: #10201a;
   --ink-2: #25352e;
-  --muted: #64766d;
+  --muted: #5b6d63;
   --line: #e3e9e5;
   --line-strong: #cfd9d2;
   --brand: #0b7a5a;
@@ -25,6 +25,21 @@
 
 * {
   box-sizing: border-box;
+}
+
+:where(a, button, summary, input, select, textarea):focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+details summary {
+  cursor: pointer;
+}
+details summary::after {
+  content: " ▾";
+  font-size: 10px;
+  opacity: 0.6;
 }
 
 html,
@@ -241,6 +256,27 @@ main.grow {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+@media (max-width: 760px) {
+  .topbar-inner {
+    height: auto;
+    flex-wrap: wrap;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    gap: 8px 12px;
+  }
+  .nav {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .topbar-right {
+    margin-left: auto;
+  }
+}
+
 @media (max-width: 560px) {
   .grid-2,
   .grid-3,

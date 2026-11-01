@@ -11,6 +11,7 @@ import {
 } from "@/lib/auth";
 import {
   BillingError,
+  confirmExistingPayment,
   createInvoice,
   markInvoicePaid,
   openInvoiceFor,
@@ -43,7 +44,9 @@ function text(data: FormData, key: string): string {
 }
 
 function number(data: FormData, key: string, fallback: number): number {
-  const value = Number(text(data, key).replace(/,/g, ""));
+  const raw = text(data, key).replace(/,/g, "");
+  if (!raw) return fallback;
+  const value = Number(raw);
   return Number.isFinite(value) ? value : fallback;
 }
 
@@ -394,7 +397,14 @@ export async function setPaidThroughAction(formData: FormData) {
   await requireAdmin();
   const userId = text(formData, "userId");
   const value = text(formData, "paidThrough");
-  if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) redirect("/admin/members?error=date");
+  if (value) {
+    const parsed = new Date(`${value}T00:00:00Z`);
+    const valid =
+      /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+      !Number.isNaN(parsed.getTime()) &&
+      parsed.toISOString().slice(0, 10) === value;
+    if (!valid) redirect("/admin/members?error=date");
+  }
 
   db()
     .prepare("UPDATE users SET paid_through = ?, updated_at = ? WHERE id = ?")
@@ -418,6 +428,9 @@ export async function adminCreateInvoiceAction(formData: FormData) {
   let id: string;
   try {
     const rate = await getCurrentRate();
+    if (rate.source === "fallback") {
+      redirect("/admin/invoices?error=fx");
+    }
     id = createInvoice({ userId, plan, fxRate: rate.rate, fxDate: rate.date, actor: null }).id;
   } catch (error) {
     const message = error instanceof BillingError ? error.message : "Could not create invoice.";
@@ -434,7 +447,7 @@ export async function adminMarkPaidAction(formData: FormData) {
   const invoiceId = text(formData, "invoiceId");
   const method = text(formData, "method");
   const currency = text(formData, "currency") === "CNY" ? "CNY" : "USD";
-  const value = number(formData, "amount", 0);
+  let value = number(formData, "amount", 0);
   const txRef = text(formData, "txRef");
   const note = text(formData, "note");
 
@@ -442,6 +455,10 @@ export async function adminMarkPaidAction(formData: FormData) {
 
   const invoice = db().prepare("SELECT * FROM invoices WHERE id = ?").get(invoiceId) as unknown as Invoice | undefined;
   if (!invoice) redirect("/admin/invoices?error=missing");
+
+  // The form seeds the USD amount; if the admin switched to CNY without
+  // editing the field, use the invoice's locked CNY figure.
+  if (currency === "CNY" && value === invoice.amount_usd) value = invoice.amount_cny;
 
   try {
     markInvoicePaid({
@@ -453,6 +470,7 @@ export async function adminMarkPaidAction(formData: FormData) {
       source: "admin",
       actor: "admin",
       note: note || null,
+      allowPartial: flag(formData, "partial"),
     });
   } catch (error) {
     const message = error instanceof BillingError ? error.message : "Could not mark the invoice paid.";
@@ -523,20 +541,10 @@ export async function approvePaymentAction(formData: FormData) {
 
   const invoice = db().prepare("SELECT * FROM invoices WHERE id = ?").get(payment.invoice_id) as unknown as Invoice;
   try {
-    markInvoicePaid({
-      invoiceId: invoice.id,
-      method: payment.method,
-      amount: payment.amount,
-      currency: payment.currency,
-      txRef: payment.tx_ref,
-      source: "admin",
-      actor: "admin",
-      note: "Approved from pending automatic match",
-    });
+    confirmExistingPayment(paymentId, "admin");
   } catch (error) {
     redirect(`/admin/invoices?error=${encodeURIComponent((error as Error).message)}`);
   }
-  db().prepare("UPDATE payments SET status = 'confirmed', confirmed_at = ? WHERE id = ?").run(nowIso(), paymentId);
   await sendReceiptForInvoice(invoice.id);
   refreshAll();
   redirect("/admin/invoices?saved=approved");

@@ -31,6 +31,7 @@ const ERRORS: Record<string, string> = {
   input: "Check the method and amount.",
   missing: "Invoice not found.",
   payment: "That pending payment is no longer available.",
+  fx: "No USD→CNY rate is available. Set one under Settings → Exchange rate.",
 };
 
 interface Row extends Invoice {
@@ -58,7 +59,7 @@ export default async function InvoicesPage({
 
   const pending = db()
     .prepare(
-      `SELECT p.*, u.name AS user_name, i.reference
+      `SELECT p.*, u.name AS user_name, i.reference, i.amount_usd AS expected_usd
        FROM payments p JOIN invoices i ON i.id = p.invoice_id JOIN users u ON u.id = i.user_id
        WHERE p.status = 'pending' ORDER BY p.created_at DESC`,
     )
@@ -72,6 +73,7 @@ export default async function InvoicesPage({
     created_at: string;
     user_name: string;
     reference: string;
+    expected_usd: number;
   }[];
 
   const members = db()
@@ -103,7 +105,7 @@ export default async function InvoicesPage({
       {pending.length > 0 ? (
         <div className="card">
           <div className="card-head">
-            <h2>Automatic matches needing review</h2>
+            <h2>Payments to review</h2>
             <span className="badge badge-warn">{pending.length}</span>
           </div>
           <div className="table-wrap">
@@ -128,7 +130,9 @@ export default async function InvoicesPage({
                     </td>
                     <td className="right">
                       {payment.currency === "CNY" ? `¥${payment.amount.toFixed(2)}` : formatMoney(payment.amount)}
-                      <div className="muted small">≈ {formatMoney(payment.amount_usd)}</div>
+                      <div className="muted small">
+                        ≈ {formatMoney(payment.amount_usd)} of {formatMoney(payment.expected_usd)}
+                      </div>
                     </td>
                     <td className="small">{formatDateTime(payment.created_at, settings.plan.timezone)}</td>
                     <td className="right">
@@ -239,6 +243,10 @@ export default async function InvoicesPage({
                                 aria-label="Amount"
                               />
                               <input name="txRef" className="input" placeholder="Transaction reference" aria-label="Transaction reference" />
+                              <label className="check small">
+                                <input type="checkbox" name="partial" />
+                                <span>Accept partial payment</span>
+                              </label>
                               <SubmitButton className="btn btn-primary btn-sm" pending="Saving…">
                                 Mark paid
                               </SubmitButton>
