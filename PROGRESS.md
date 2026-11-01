@@ -13,7 +13,8 @@
 - [x] Single-use expiring invites, seat cap, plan-timezone expiry
 - [x] 16-char access codes (peppered hash), server-rendered one-time reveal, hashed sessions
 - [x] One `/login` for admin, member access codes and invite redemption; the code decides what happens
-- [x] Rate limiting, constant-time comparisons, sign-out-everywhere
+- [x] Rate limiting (per-IP + global), constant-time comparisons, sign-out-everywhere
+- [x] Security audit fixes: no admin oracle, transactional invite/seat checks, OCR body/concurrency limits, escaped emails, pinned CI action, loopback bind
 
 ## Payments & mail
 - [x] WeChat / Alipay / Venmo / Zelle details + QR; only configured methods offered

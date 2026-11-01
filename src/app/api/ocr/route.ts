@@ -47,42 +47,51 @@ export async function POST(request: Request) {
     return json({ ok: false, error: "Too many scans. Wait a minute and try again." }, 429);
   }
 
+  // Require a declared length so chunked bodies cannot bypass the size cap
+  // before formData() buffers them.
   const length = Number(request.headers.get("content-length") || 0);
-  if (length && length > MAX_BYTES + 128 * 1024) {
+  if (!length) {
+    return json({ ok: false, error: "Content-Length is required." }, 411);
+  }
+  if (length > MAX_BYTES + 128 * 1024) {
     return json({ ok: false, error: "That upload is too large (max 4 MB)." }, 413);
   }
+
+  // Reserve the slot before any await, otherwise concurrent requests all pass
+  // the check and spawn tesseract at once.
   if (active >= MAX_CONCURRENT) {
     return json({ ok: false, error: "Another scan is running. Try again in a moment." }, 429);
   }
-
-  let form: FormData;
-  try {
-    form = await request.formData();
-  } catch {
-    return json({ ok: false, error: "Send the image as multipart form-data." }, 400);
-  }
-
-  const file = form.get("image");
-  if (!(file instanceof File)) return json({ ok: false, error: "No image uploaded." }, 400);
-  if (file.size === 0 || file.size > MAX_BYTES) {
-    return json({ ok: false, error: "Image must be between 1 byte and 4 MB." }, 413);
-  }
-  if (!ALLOWED.has(file.type)) {
-    return json(
-      {
-        ok: false,
-        error: "Use a PNG, JPG or WebP screenshot. iPhone HEIC photos: take a screenshot instead, or share as JPEG.",
-      },
-      415,
-    );
-  }
-
-  const dir = await mkdtemp(path.join(tmpdir(), "a1-ocr-"));
-  const filePath = path.join(dir, "receipt");
   active += 1;
 
+  let dir: string | null = null;
   try {
+    let form: FormData;
+    try {
+      form = await request.formData();
+    } catch {
+      return json({ ok: false, error: "Send the image as multipart form-data." }, 400);
+    }
+
+    const file = form.get("image");
+    if (!(file instanceof File)) return json({ ok: false, error: "No image uploaded." }, 400);
+    if (file.size === 0 || file.size > MAX_BYTES) {
+      return json({ ok: false, error: "Image must be between 1 byte and 4 MB." }, 413);
+    }
+    if (!ALLOWED.has(file.type)) {
+      return json(
+        {
+          ok: false,
+          error: "Use a PNG, JPG or WebP screenshot. iPhone HEIC photos: take a screenshot instead, or share as JPEG.",
+        },
+        415,
+      );
+    }
+
+    dir = await mkdtemp(path.join(tmpdir(), "a1-ocr-"));
+    const filePath = path.join(dir, "receipt");
     await writeFile(filePath, Buffer.from(await file.arrayBuffer()));
+
     const lang = await languages();
     const { stdout } = await run("tesseract", [filePath, "stdout", "-l", lang, "--psm", "6"], {
       timeout: 20_000,
@@ -109,7 +118,7 @@ export async function POST(request: Request) {
     );
   } finally {
     active -= 1;
-    await rm(dir, { recursive: true, force: true }).catch(() => undefined);
+    if (dir) await rm(dir, { recursive: true, force: true }).catch(() => undefined);
   }
 }
 

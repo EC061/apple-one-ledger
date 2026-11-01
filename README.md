@@ -59,7 +59,9 @@ docker compose up -d
 ```
 
 The compose file pulls `ghcr.io/ec061/apple-one-ledger:latest` and keeps SQLite in
-`./data`. To build the image yourself instead:
+`./data`. It binds to **127.0.0.1:18900** on purpose: put Caddy/nginx in front for HTTPS
+instead of exposing the app directly. `APP_URL` is required so emailed links cannot be
+poisoned by a forged Host header. To build the image yourself instead:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
@@ -92,8 +94,8 @@ settings if you want anonymous pulls.
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `SESSION_SECRET` | yes | Peppers access-code hashes. 32+ chars; changing it invalidates all member codes. |
-| `ADMIN_REG_CODE` | yes | Admin code for `/login`. Never written to the database. |
-| `APP_URL` | optional | Canonical public URL (e.g. `https://plan.example.com`). Without it, links follow `X-Forwarded-*`. |
+| `ADMIN_REG_CODE` | yes | Admin code for `/login` (12+ characters). Never written to the database. |
+| `APP_URL` | yes | Canonical public URL (e.g. `https://plan.example.com`). Required so emailed links cannot be poisoned by a forged Host header. |
 | `DATA_DIR` / `DATABASE_PATH` | compose sets them | `/data` and `/data/applecare.db`. |
 | `PORT` | compose sets it | Internal listen port `3000`; compose publishes `18900`. |
 | `NODE_ENV` | compose sets it | `production`. |

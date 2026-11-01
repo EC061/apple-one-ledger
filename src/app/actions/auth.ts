@@ -46,19 +46,23 @@ export async function unifiedAuthAction(formData: FormData) {
   const name = text(formData, "name");
   const email = text(formData, "email").toLowerCase();
 
+  // Two buckets: per-IP and a global cap that survives header rotation.
   if (!(await rateLimitAsync("auth"))) redirect("/login?error=rate");
+  if (!rateLimit("auth:global", 150, 15 * 60_000)) redirect("/login?error=rate");
   if (!code) redirect("/login?error=empty");
 
   // 1. Admin code
   if (adminCodeConfigured() && verifyAdminCode(code)) {
-    if (!EMAIL.test(email)) redirect("/login?error=admin-email");
+    // Never reveal "the code was right but the email was wrong": both cases
+    // return the same generic failure a wrong code does.
+    if (!EMAIL.test(email)) redirect("/login?error=invalid");
 
     let admin = getAdmin();
     if (!admin) {
       admin = createAdmin(email, name || "Family admin");
       event(admin.id, "admin.created", { email });
     } else if (admin.email.toLowerCase() !== email) {
-      redirect("/login?error=claimed");
+      redirect("/login?error=invalid");
     }
 
     await createSession(admin.id);
@@ -93,10 +97,6 @@ export async function unifiedAuthAction(formData: FormData) {
   }
   if (name.length < 2 || name.length > 60) redirect("/login?error=name");
   if (!EMAIL.test(email)) redirect("/login?error=email");
-  if (seatsUsed() >= seatCapacity()) redirect("/login?error=full");
-  if (db().prepare("SELECT 1 FROM users WHERE lower(email) = ?").get(email)) {
-    redirect("/login?error=exists");
-  }
 
   const accessCode = generateCode();
   const userId = newId();
@@ -106,6 +106,17 @@ export async function unifiedAuthAction(formData: FormData) {
   // crash can leave an active member with a reusable invite.
   try {
     tx(() => {
+      // Re-read inside the write lock: another process may have consumed the
+      // invite or taken the last seat between the page load and this request.
+      const fresh = db()
+        .prepare("SELECT * FROM invites WHERE code = ?")
+        .get(inviteCode) as unknown as Invite | undefined;
+      if (!fresh || fresh.revoked_at) throw new Error("invalid");
+      if (fresh.used_at) throw new Error("used");
+      if (fresh.expires_at && fresh.expires_at < today(settings.plan.timezone)) throw new Error("expired");
+      if (seatsUsed() >= seatCapacity()) throw new Error("full");
+      if (db().prepare("SELECT 1 FROM users WHERE lower(email) = ?").get(email)) throw new Error("exists");
+
       db()
         .prepare(
           `INSERT INTO users (id, role, name, email, access_code_hash, status, created_at, updated_at)
@@ -114,7 +125,9 @@ export async function unifiedAuthAction(formData: FormData) {
         .run(userId, name, email, hashAccessCode(accessCode), now, now);
 
       const consumed = db()
-        .prepare("UPDATE invites SET used_at = ?, used_by = ? WHERE code = ? AND used_at IS NULL")
+        .prepare(
+          "UPDATE invites SET used_at = ?, used_by = ? WHERE code = ? AND used_at IS NULL AND revoked_at IS NULL",
+        )
         .run(now, userId, inviteCode);
       if (Number(consumed.changes) !== 1) throw new Error("used");
     });

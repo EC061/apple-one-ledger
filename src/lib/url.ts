@@ -54,8 +54,11 @@ export function requestMeta() {
  * one your proxy added. x-real-ip wins when present.
  */
 function clientIp(forwarded: string | null, realIp: string | null): string | null {
-  if (realIp) return realIp;
-  if (!forwarded) return null;
-  const parts = forwarded.split(",").map((value) => value.trim()).filter(Boolean);
-  return parts[parts.length - 1] || null;
+  // The right-most X-Forwarded-For entry is the one added by the reverse proxy.
+  // Do not prefer X-Real-IP: a direct client can set it and get a fresh bucket.
+  if (forwarded) {
+    const parts = forwarded.split(",").map((value) => value.trim()).filter(Boolean);
+    if (parts.length) return parts[parts.length - 1];
+  }
+  return realIp || null;
 }

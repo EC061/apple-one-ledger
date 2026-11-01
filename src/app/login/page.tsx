@@ -112,7 +112,7 @@ export default async function LoginPage({
               <strong>New member:</strong> the invite code, plus your name and email.
             </li>
             <li>
-              <strong>Admin:</strong> the <span className="mono">ADMIN_REG_CODE</span> and the admin email.
+              <strong>Admin:</strong> the <span className="mono">ADMIN_REG_CODE</span> (12+ characters) and the admin email.
               {adminReady ? "" : " Admin sign-in is disabled until that variable is set."}
             </li>
           </ul>
