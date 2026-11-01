@@ -48,6 +48,8 @@ export interface ReminderSettings {
   overdueEveryDays: number;
   adminDigest: boolean;
   removalWarningDays: number;
+  /** Days before paid-through when the renewal notice goes out. */
+  renewalNoticeDays: number;
 }
 
 export interface AppSettings {
@@ -87,7 +89,7 @@ export const DEFAULT_SETTINGS: Settings = {
     name: "Apple One Premier + AppleCare One",
     timezone: "America/New_York",
     seats: 6,
-    graceDays: 7,
+    graceDays: 1,
     dueSoonDays: 7,
     services: [
       "Apple Music",
@@ -129,10 +131,11 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   reminders: {
     enabled: true,
-    daysBefore: [7, 3, 1],
-    overdueEveryDays: 3,
+    daysBefore: [7],
+    overdueEveryDays: 1,
     adminDigest: true,
-    removalWarningDays: 7,
+    removalWarningDays: 1,
+    renewalNoticeDays: 7,
   },
   app: {
     sessionDays: 30,

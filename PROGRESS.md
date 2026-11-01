@@ -12,7 +12,7 @@
 - [x] Invite links derived from `APP_URL` / `X-Forwarded-*` (reverse-proxy HTTPS aware)
 - [x] Single-use expiring invites, seat cap, plan-timezone expiry
 - [x] 16-char access codes (peppered hash), server-rendered one-time reveal, hashed sessions
-- [x] Admin login with `ADMIN_REG_CODE`; first-login claim; secret strength enforced in production
+- [x] One `/login` for admin, member access codes and invite redemption; the code decides what happens
 - [x] Rate limiting, constant-time comparisons, sign-out-everywhere
 
 ## Payments & mail
@@ -21,7 +21,7 @@
 - [x] Member payment reports, admin approve/reject, partial-payment guard
 - [x] `confirmExistingPayment` avoids double-recording an approved transfer
 - [x] SMTP config + test, all message types, per-day/per-week dedupe on success only
-- [x] Daily jobs: overdue (awaiting only, not submitted), FX, reminders, digest, storage
+- [x] Daily jobs: overdue, FX, reminders, renewal notices (7 days ahead, member + admin), digest, storage
 - [x] In-process scheduler every 6 h (no external cron)
 
 ## Storage

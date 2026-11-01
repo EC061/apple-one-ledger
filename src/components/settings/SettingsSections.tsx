@@ -378,6 +378,21 @@ export async function RemindersCard() {
                 <span className="hint">Comma separated, e.g. 7, 3, 1.</span>
               </div>
               <div className="field">
+                <label className="label" htmlFor="renewalNoticeDays">
+                  Renewal notice (days before coverage ends)
+                </label>
+                <input
+                  id="renewalNoticeDays"
+                  name="renewalNoticeDays"
+                  type="number"
+                  min={1}
+                  max={60}
+                  className="input"
+                  defaultValue={reminders.renewalNoticeDays}
+                />
+                <span className="hint">Sent to the member and to you when a paid-through date is this close.</span>
+              </div>
+              <div className="field">
                 <label className="label" htmlFor="overdueEveryDays">
                   Overdue reminder frequency (days)
                 </label>

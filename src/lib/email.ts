@@ -464,3 +464,81 @@ export async function sendReceiptForInvoice(invoiceId: string) {
   if (!user) return;
   await sendReceiptEmail({ user, invoice, baseUrl: await getBaseUrl() }).catch(() => undefined);
 }
+
+export async function sendRenewalNoticeEmail(input: {
+  user: User;
+  paidThrough: string;
+  days: number;
+  baseUrl: string;
+  dedupeKey: string;
+}) {
+  const { user, paidThrough, days, baseUrl } = input;
+  const subject = `Your plan coverage ends in ${days} days`;
+  const text = [
+    `Hi ${user.name},`,
+    "",
+    `Your seat is covered until ${formatDate(paidThrough)} — ${days} days from now.`,
+    "Renew to keep the seat; an unpaid seat is flagged for removal once it lapses.",
+    "",
+    `${baseUrl}/dashboard`,
+  ].join("\n");
+
+  const html = layout(
+    "Coverage ends soon",
+    p(`Hi ${user.name},`) +
+      p(
+        `Your seat is covered until <strong>${formatDate(paidThrough)}</strong> — ${days} days from now.`,
+      ) +
+      p("Renew to keep the seat. An unpaid seat is flagged for removal once it lapses.") +
+      button(`${baseUrl}/dashboard`, "Renew in the dashboard"),
+    "You receive this because you hold a seat on the family plan.",
+  );
+
+  return sendMail({ to: user.email, subject, text, html, kind: "renewal-notice", dedupeKey: input.dedupeKey });
+}
+
+export async function sendRenewalAdminEmail(input: {
+  admin: User;
+  rows: { name: string; email: string; paidThrough: string }[];
+  days: number;
+  baseUrl: string;
+  day: string;
+}) {
+  const { admin, rows, days, baseUrl, day } = input;
+  const subject = `Renewal in ${days} days: ${rows.length} member${rows.length === 1 ? "" : "s"}`;
+  const text = [
+    `Coverage ends in ${days} days for:`,
+    "",
+    ...rows.map((row) => `${row.name} <${row.email}> — until ${formatDate(row.paidThrough)}`),
+    "",
+    `${baseUrl}/admin/pool`,
+  ].join("\n");
+
+  const html = layout(
+    `Renewal in ${days} days`,
+    p(`${rows.length} member(s) reach the end of their paid coverage in ${days} days.`) +
+      `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:13px;border-collapse:collapse;">
+        <tr style="text-align:left;color:#6b7c74;">
+          <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;">Member</th>
+          <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;text-align:right;">Covered until</th>
+        </tr>
+        ${rows
+          .map(
+            (row) =>
+              `<tr><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;">${row.name}<br><span style="color:#6b7c74;font-size:12px;">${row.email}</span></td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;text-align:right;">${formatDate(row.paidThrough)}</td></tr>`,
+          )
+          .join("")}
+      </table>` +
+      button(`${baseUrl}/admin/pool`, "Open the active pool"),
+    "Sent once per day while the renewal window is open.",
+  );
+
+  return sendMail({
+    to: admin.email,
+    subject,
+    text,
+    html,
+    kind: "renewal-admin",
+    dedupeKey: `renewal-admin:${day}`,
+  });
+}

@@ -65,8 +65,9 @@ The compose file pulls `ghcr.io/ec061/apple-one-ledger:latest` and keeps SQLite 
 docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
 ```
 
-Open `http://localhost:18900/admin/login`, enter your email and the `ADMIN_REG_CODE`,
-then create invites under **Invites**.
+Open `http://localhost:18900/login` and enter `ADMIN_REG_CODE` with your admin email. The same
+page handles member sign-in, invite redemption and admin sign-in — the code decides. Then create
+invites under **Invites**.
 
 ### Published image
 
@@ -91,7 +92,7 @@ settings if you want anonymous pulls.
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `SESSION_SECRET` | yes | Peppers access-code hashes. 32+ chars; changing it invalidates all member codes. |
-| `ADMIN_REG_CODE` | yes | Password for `/admin/login`. Never written to the database. |
+| `ADMIN_REG_CODE` | yes | Admin code for `/login`. Never written to the database. |
 | `APP_URL` | optional | Canonical public URL (e.g. `https://plan.example.com`). Without it, links follow `X-Forwarded-*`. |
 | `DATA_DIR` / `DATABASE_PATH` | compose sets them | `/data` and `/data/applecare.db`. |
 | `PORT` | compose sets it | Internal listen port `3000`; compose publishes `18900`. |
@@ -304,7 +305,7 @@ anyway.
 
 ## Security notes
 
-- Admin login: `ADMIN_REG_CODE` compared in constant time; the account is created on first use
+- Admin sign-in: `ADMIN_REG_CODE` compared in constant time on the shared `/login` page; the account is created on first use
   with the email you enter.
 - Member login: 16-character random codes, stored as peppered SHA-256; sessions are random
   256-bit tokens stored hashed, 30-day expiry.

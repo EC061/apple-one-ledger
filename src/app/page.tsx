@@ -112,7 +112,6 @@ function ServicesSection({
         {others.map((name) => (
           <div key={name} className="service-tile">
             <div className="service-name">{name}</div>
-            <div className="service-note">{t.serviceIncluded}</div>
           </div>
         ))}
         <div className="service-tile service-icloud">
@@ -235,7 +234,7 @@ function PaymentsSection({ t }: { t: Copy }) {
           <div key={method.name} className="card card-pad">
             <h3>{method.name}</h3>
             <p className="muted small" style={{ marginBottom: 0 }}>
-              {method.currency} · {t.serviceIncluded}
+              {method.currency}
             </p>
           </div>
         ))}
