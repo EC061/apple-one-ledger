@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import PwaRegister from "@/components/PwaRegister";
+import { getLang } from "@/lib/i18n";
+import { getTheme } from "@/lib/theme";
 
 export const metadata: Metadata = {
   title: {
@@ -33,9 +35,10 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const [lang, theme] = await Promise.all([getLang(), getTheme()]);
   return (
-    <html lang="en">
+    <html lang={lang === "zh" ? "zh-Hans" : "en"} data-theme={theme}>
       <body>
         {children}
         <PwaRegister />

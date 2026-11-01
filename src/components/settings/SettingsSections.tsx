@@ -36,6 +36,18 @@ export async function PlanPricingCard() {
                 </label>
                 <input id="plan-name" name="name" className="input" defaultValue={plan.name} />
               </div>
+              <div className="field full">
+                <label className="label" htmlFor="services">
+                  What the plan includes (one per line)
+                </label>
+                <textarea
+                  id="services"
+                  name="services"
+                  className="textarea"
+                  defaultValue={plan.services.join("\n")}
+                />
+                <span className="hint">Shown on the public page as the shared services.</span>
+              </div>
               <div className="field">
                 <label className="label" htmlFor="timezone">
                   Timezone (IANA)

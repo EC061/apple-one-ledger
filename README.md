@@ -204,6 +204,20 @@ There is no storage API and no Shortcut to maintain in this build. `contrib/iclo
 as a read-only experiment if you want to see what the private endpoints return — it does not post
 anything into the app.
 
+## Public page, language and theme
+
+The landing page is the public rules page: pricing, cost arithmetic, every service in the plan,
+the iCloud+ split, payment methods, email notifications and the seat policy. It reads live
+settings, so changing pricing, seats, grace days or the service list in **Admin → Settings**
+updates it immediately.
+
+- **Bilingual** English / Simplified Chinese. Default comes from the browser's
+  `Accept-Language`; a header switch stores `a1_lang` and reloads.
+- **Dark by default**, with a light switch in the header (`a1_theme` cookie). Tokens live on
+  `html[data-theme]`, so the whole app follows the same choice.
+- **Services** are editable as a one-per-line list under Settings → Plan & pricing, and the
+  iCloud+ tile computes the per-seat share from the storage pool.
+
 ## Install on iPhone (PWA)
 
 The app ships a web manifest, maskable icons and a conservative service worker (it caches only

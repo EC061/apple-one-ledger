@@ -94,6 +94,11 @@ export async function saveSettingsAction(formData: FormData) {
       seats: Math.round(clamp(number(formData, "seats", current.plan.seats), 2, 12)),
       graceDays: Math.round(clamp(number(formData, "graceDays", current.plan.graceDays), 0, 90)),
       dueSoonDays: Math.round(clamp(number(formData, "dueSoonDays", current.plan.dueSoonDays), 1, 60)),
+      services: text(formData, "services")
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .slice(0, 20),
     });
 
     saveSection("pricing", {

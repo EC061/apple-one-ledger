@@ -1,23 +1,29 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { formatMoney } from "@/lib/dates";
 import { PLANS, PLAN_ORDER, perSeatMonthly } from "@/lib/pricing";
+import { dict, fill, getLang, type Copy } from "@/lib/i18n";
+import { getTheme } from "@/lib/theme";
 import { Brand } from "@/components/ui";
+import LanguageToggle from "@/components/LanguageToggle";
+import ThemeToggle from "@/components/ThemeToggle";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Shared family plan",
   description: "Cost-sharing ledger for a shared Apple One Premier + AppleCare One family plan.",
 };
 
-export const dynamic = "force-dynamic";
+const ICY = "iCloud";
 
 export default async function HomePage() {
+  const [lang, theme] = await Promise.all([getLang(), getTheme()]);
   const settings = getSettings();
-  const user = await getCurrentUser();
-  const { pricing, plan } = settings;
-  const seatCost = perSeatMonthly(pricing, plan.seats);
+  const t = dict[lang];
+  const seatCost = perSeatMonthly(settings.pricing, settings.plan.seats);
+  const quota = Math.floor(settings.storage.totalGb / Math.max(settings.storage.shareCount, 1));
 
   return (
     <div className="page">
@@ -25,158 +31,253 @@ export default async function HomePage() {
         <div className="container topbar-inner">
           <Brand />
           <div className="topbar-right">
-            {user ? (
-              <Link href={user.role === "admin" ? "/admin" : "/dashboard"} className="btn btn-primary btn-sm">
-                Open dashboard
-              </Link>
-            ) : (
-              <>
-                <Link href="/admin/login" className="btn btn-ghost btn-sm">
-                  Admin
-                </Link>
-                <Link href="/login" className="btn btn-secondary btn-sm">
-                  Sign in
-                </Link>
-              </>
-            )}
+            <LanguageToggle lang={lang} />
+            <ThemeToggle theme={theme} labels={{ light: t.themeToLight, dark: t.themeToDark }} />
+            <Link href="/login" className="btn btn-primary btn-sm">
+              {t.signIn}
+            </Link>
           </div>
         </div>
       </header>
 
       <main className="grow">
-        <section className="hero">
-          <div className="container">
-            <span className="eyebrow">Invite-only · {plan.seats} seats</span>
-            <h1>One family plan. {plan.seats} people. Zero spreadsheets.</h1>
-            <p className="lede">
-              A private ledger for our shared {plan.name} subscription. See exactly what you owe, pay in USD or
-              CNY, and keep your seat covered — no group chat archaeology.
-            </p>
-            <div className="row">
-              <Link href="/login" className="btn btn-primary">
-                Sign in with your code
-              </Link>
-              <Link href="/admin/login" className="btn btn-secondary">
-                Admin sign in
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        <section className="container stack" style={{ paddingBottom: 56 }}>
-          <div className="card card-pad">
-            <div className="row-between">
-              <div>
-                <h2>Cost basis</h2>
-                <p className="muted small" style={{ marginBottom: 0 }}>
-                  {formatMoney(pricing.monthlyTotalUsd)} per month for the whole plan, split {plan.seats} ways.
-                  Term prices are rounded to whole dollars, which is why {formatMoney(pricing.firstTerm.quarterly)}{" "}
-                  per quarter works out to {formatMoney(pricing.firstTerm.quarterly / 3)}/month rather than exactly{" "}
-                  {formatMoney(seatCost)}.
-                </p>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <div className="stat-value">{formatMoney(seatCost)}</div>
-                <div className="muted small">per seat / month</div>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h2>Choose a term</h2>
-            <p className="muted small">Pay up front, in whichever cadence is easiest for you.</p>
-          </div>
-
-          <div className="price-grid">
-            {PLAN_ORDER.map((key, index) => {
-              const definition = PLANS[key];
-              const first = pricing.firstTerm[key];
-              const renewal = pricing.renewal[key];
-              return (
-                <div key={key} className={`price-card ${index === 1 ? "featured" : ""}`}>
-                  <div className="price-name">{definition.label}</div>
-                  <div className="price-amount">
-                    {formatMoney(first)} <span>first term</span>
-                  </div>
-                  <div className="price-note">{definition.cadence} · {definition.months} months of coverage</div>
-                  <div className="price-renew">
-                    Second term onward: {formatMoney(renewal)}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="disclosure">
-            <h3>Read this before your first payment</h3>
-            <ul>
-              <li>
-                <strong>First term is flat:</strong> {formatMoney(pricing.firstTerm.quarterly)} quarterly,{" "}
-                {formatMoney(pricing.firstTerm.semiannual)} half-year, {formatMoney(pricing.firstTerm.annual)} annual.
-                That is the exact amount charged — no fee added at checkout.
-              </li>
-              <li>
-                <strong>From the second term onward</strong> the price changes to{" "}
-                {formatMoney(pricing.renewal.quarterly)} quarterly, {formatMoney(pricing.renewal.semiannual)} half-year,{" "}
-                {formatMoney(pricing.renewal.annual)} annual. Your invoice always shows which price applies before you pay.
-              </li>
-              <li>
-                <strong>CNY payments</strong> use the USD→CNY rate captured the day the invoice is issued. The rate and the
-                resulting CNY amount are locked on your invoice.
-              </li>
-              <li>
-                <strong>Pay by</strong> WeChat Pay, Alipay, Venmo, or Zelle, then confirm in the dashboard with the
-                reference code on your invoice.
-              </li>
-              <li>
-                <strong>Reminders</strong> go out by email for every open term. Seats unpaid after a {plan.graceDays}-day
-                grace period are flagged for removal.
-              </li>
-              <li>
-                <strong>Confirmation:</strong> report the payment with its amount and transaction id; the admin
-                reviews and approves it, and you get a receipt by email.
-              </li>
-            </ul>
-          </div>
-
-          <div className="grid grid-3">
-            <div className="card card-pad">
-              <h3>1. Claim your seat</h3>
-              <p className="muted small" style={{ marginBottom: 0 }}>
-                Open the invite link the admin sends you. It is tied to this deployment&apos;s HTTPS address and can
-                only be used once.
-              </p>
-            </div>
-            <div className="card card-pad">
-              <h3>2. Pick a term</h3>
-              <p className="muted small" style={{ marginBottom: 0 }}>
-                Quarterly, half-year, or annual. Your invoice shows the USD amount, the locked CNY equivalent, and a
-                unique reference code.
-              </p>
-            </div>
-            <div className="card card-pad">
-              <h3>3. Pay and confirm</h3>
-              <p className="muted small" style={{ marginBottom: 0 }}>
-                Send the money with the reference in the note. The ledger records it, emails a receipt, and shows your
-                coverage end date.
-              </p>
-            </div>
-          </div>
-        </section>
+        <Hero t={t} seats={settings.plan.seats} planName={settings.plan.name} />
+        <div className="container stack" style={{ paddingBottom: 56 }}>
+          <ServicesSection t={t} services={settings.plan.services} quota={quota} shareCount={settings.storage.shareCount} />
+          <PricingSection t={t} pricing={settings.pricing} />
+          <CostBasis t={t} pricing={settings.pricing} seats={settings.plan.seats} seatCost={seatCost} />
+          <RulesSection t={t} grace={settings.plan.graceDays} />
+          <PaymentsSection t={t} />
+          <InfoCards t={t} pool={settings.storage.totalGb} shareCount={settings.storage.shareCount} quota={quota} seats={settings.plan.seats} />
+        </div>
       </main>
 
       <footer className="footer">
         <div className="container row-between">
           <span>
-            {plan.name} · {plan.seats} seats · self-hosted
+            {settings.plan.name} · {settings.plan.seats} seats
           </span>
-          <span className="row" style={{ gap: 14 }}>
-            <Link href="/about">How it works</Link>
-            <Link href="/login">Sign in</Link>
-            <Link href="/admin/login">Admin</Link>
+          <span className="muted">
+            <Link href="#how-it-works">{t.navHow}</Link> ·{" "}
+            <Link href="/login">{t.signIn}</Link>
           </span>
         </div>
       </footer>
     </div>
+  );
+}
+
+function Hero({ t, seats, planName }: { t: Copy; seats: number; planName: string }) {
+  return (
+    <section className="hero">
+      <div className="container">
+        <span className="eyebrow">{fill(t.eyebrow, { seats })}</span>
+        <h1>{fill(t.h1, { seats })}</h1>
+        <p className="lede">{fill(t.lede, { plan: planName })}</p>
+        <div className="row">
+          <Link href="/login" className="btn btn-primary">
+            {t.ctaSignIn}
+          </Link>
+          <Link href="#how-it-works" className="btn btn-secondary">
+            {t.ctaHow}
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ServicesSection({
+  t,
+  services,
+  quota,
+  shareCount,
+}: {
+  t: Copy;
+  services: string[];
+  quota: number;
+  shareCount: number;
+}) {
+  const others = services.filter((name) => !name.toLowerCase().includes(ICY.toLowerCase()));
+
+  return (
+    <section id="services" className="stack">
+      <div>
+        <h2>{t.servicesTitle}</h2>
+        <p className="muted small" style={{ marginBottom: 0 }}>
+          {fill(t.servicesSub, { n: services.length })}
+        </p>
+      </div>
+      <div className="services-grid">
+        {others.map((name) => (
+          <div key={name} className="service-tile">
+            <div className="service-name">{name}</div>
+            <div className="service-note">{t.serviceIncluded}</div>
+          </div>
+        ))}
+        <div className="service-tile service-icloud">
+          <div className="row-between">
+            <div>
+              <div className="service-name">{t.icloudName}</div>
+              <div className="service-note">{fill(t.icloudNote, { gb: quota })}</div>
+            </div>
+            <span className="pill">{quota} GB</span>
+          </div>
+          <div className="segbar" aria-label={t.icloudBar}>
+            {Array.from({ length: Math.min(Math.max(shareCount, 1), 12) }).map((_, index) => (
+              <span key={index} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PricingSection({ t, pricing }: { t: Copy; pricing: ReturnType<typeof getSettings>["pricing"] }) {
+  return (
+    <section id="pricing" className="stack">
+      <div>
+        <h2>{t.pricingTitle}</h2>
+        <p className="muted small" style={{ marginBottom: 0 }}>
+          {t.pricingSub}
+        </p>
+      </div>
+      <div className="price-grid">
+        {PLAN_ORDER.map((key, index) => (
+          <div key={key} className={`price-card ${index === 1 ? "featured" : ""}`}>
+            <div className="price-name">{PLANS[key].label}</div>
+            <div className="price-amount">
+              {formatMoney(pricing.firstTerm[key])} <span>{t.firstTerm}</span>
+            </div>
+            <div className="price-note">{fill(t.months, { n: PLANS[key].months })}</div>
+            <div className="price-renew">{fill(t.renewal, { amount: formatMoney(pricing.renewal[key]) })}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function CostBasis({
+  t,
+  pricing,
+  seats,
+  seatCost,
+}: {
+  t: Copy;
+  pricing: ReturnType<typeof getSettings>["pricing"];
+  seats: number;
+  seatCost: number;
+}) {
+  const quarterlyMonthly = pricing.firstTerm.quarterly / 3;
+
+  return (
+    <section className="card card-pad cost-grid">
+      <div>
+        <h2>{t.costTitle}</h2>
+        <div className="cost-lines">
+          <span>{t.costTotal}</span>
+          <span className="value">{formatMoney(pricing.monthlyTotalUsd)}</span>
+          <span>{t.costSeats}</span>
+          <span className="value">{seats}</span>
+          <span>{t.costPerSeat}</span>
+          <span className="value strong">{formatMoney(seatCost)}</span>
+          <span>{t.costQuarter}</span>
+          <span className="value muted">{formatMoney(quarterlyMonthly)}</span>
+        </div>
+        <p className="hint" style={{ margin: "10px 0 0" }}>
+          {fill(t.costNote, {
+            quarter: formatMoney(pricing.firstTerm.quarterly),
+            exact: formatMoney(seatCost),
+          })}
+        </p>
+      </div>
+      <div className="cost-figure">
+        <div className="cost-total">{formatMoney(seatCost)}</div>
+        <div className="muted small">{t.costPerSeat}</div>
+      </div>
+    </section>
+  );
+}
+
+function RulesSection({ t, grace }: { t: Copy; grace: number }) {
+  return (
+    <section id="how-it-works" className="disclosure">
+      <h3>{t.rulesTitle}</h3>
+      <ul>
+        {t.rules.map((rule) => (
+          <li key={rule}>{fill(rule, { grace })}</li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function PaymentsSection({ t }: { t: Copy }) {
+  const methods = [
+    { name: "WeChat Pay", currency: "CNY" },
+    { name: "Alipay", currency: "CNY" },
+    { name: "Venmo", currency: "USD" },
+    { name: "Zelle", currency: "USD" },
+  ];
+
+  return (
+    <section id="payments" className="stack">
+      <div>
+        <h2>{t.payTitle}</h2>
+        <p className="muted small" style={{ marginBottom: 0 }}>
+          {t.paySub}
+        </p>
+      </div>
+      <div className="grid grid-4">
+        {methods.map((method) => (
+          <div key={method.name} className="card card-pad">
+            <h3>{method.name}</h3>
+            <p className="muted small" style={{ marginBottom: 0 }}>
+              {method.currency} · {t.serviceIncluded}
+            </p>
+          </div>
+        ))}
+      </div>
+      <p className="hint">{t.payNote}</p>
+    </section>
+  );
+}
+
+function InfoCards({
+  t,
+  pool,
+  shareCount,
+  quota,
+  seats,
+}: {
+  t: Copy;
+  pool: number;
+  shareCount: number;
+  quota: number;
+  seats: number;
+}) {
+  return (
+    <section className="grid grid-3">
+      <div className="card card-pad">
+        <h3>{t.emailTitle}</h3>
+        <p className="muted small" style={{ marginBottom: 0 }}>
+          {t.emailText}
+        </p>
+      </div>
+      <div className="card card-pad">
+        <h3>{t.storageTitle}</h3>
+        <p className="muted small" style={{ marginBottom: 0 }}>
+          {fill(t.storageText, { pool, count: shareCount, gb: quota })}
+        </p>
+      </div>
+      <div className="card card-pad">
+        <h3>{t.accessTitle}</h3>
+        <p className="muted small" style={{ marginBottom: 0 }}>
+          {fill(t.accessText, { seats })}
+        </p>
+      </div>
+    </section>
   );
 }

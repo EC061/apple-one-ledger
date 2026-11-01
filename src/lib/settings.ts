@@ -6,6 +6,8 @@ export interface PlanSettings {
   seats: number;
   graceDays: number;
   dueSoonDays: number;
+  /** What the plan includes; shown on the public page. */
+  services: string[];
 }
 
 export interface PricingSettings {
@@ -87,6 +89,15 @@ export const DEFAULT_SETTINGS: Settings = {
     seats: 6,
     graceDays: 7,
     dueSoonDays: 7,
+    services: [
+      "Apple Music",
+      "Apple TV+",
+      "Apple Arcade",
+      "Apple News+",
+      "Apple Fitness+",
+      "iCloud+ 2 TB",
+      "AppleCare One",
+    ],
   },
   pricing: {
     monthlyTotalUsd: 89.94,
