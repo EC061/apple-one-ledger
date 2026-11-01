@@ -8,8 +8,6 @@ import {
   adminMarkPaidAction,
   adminSendReminderAction,
   adminVoidInvoiceAction,
-  approvePaymentAction,
-  rejectPaymentAction,
 } from "@/app/actions/admin";
 import { Empty, MethodBadge, Notice, StatusBadge } from "@/components/ui";
 import { PendingPayments } from "@/components/admin/InvoiceSections";

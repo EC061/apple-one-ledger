@@ -7,11 +7,11 @@ import { db, event } from "@/lib/db";
 import { getSettings, patchSection } from "@/lib/settings";
 import { isPlan } from "@/lib/pricing";
 import { getCurrentRate } from "@/lib/fx";
-import { BillingError, createInvoice, markInvoicePaid, openInvoiceFor } from "@/lib/billing";
+import { createInvoice, markInvoicePaid, openInvoiceFor } from "@/lib/billing";
 import { isPaymentMethod } from "@/lib/labels";
 import { saveProofUpload, saveQrUpload } from "@/lib/uploads";
 import { sendReceiptForInvoice } from "@/lib/email";
-import type { Invoice, User } from "@/lib/types";
+import type { User } from "@/lib/types";
 
 function text(data: FormData, key: string): string {
   const value = data.get(key);
@@ -47,8 +47,7 @@ export async function quickMarkPaidAction(formData: FormData) {
         fxDate: rate.date,
         actor: "admin",
       });
-    } catch (error) {
-      const message = error instanceof BillingError ? error.message : "Could not create the invoice.";
+    } catch {
       redirect("/quick?error=invoice");
     }
   }
@@ -77,9 +76,8 @@ export async function quickMarkPaidAction(formData: FormData) {
       actor: "admin",
       proofUrl,
     });
-  } catch (error) {
-    const message = error instanceof BillingError ? error.message : "Could not record the payment.";
-    redirect("/quick?error=invoice");
+  } catch {
+    redirect("/quick?error=payment");
   }
 
   event("admin", "quick.payment", { invoiceId: invoice.id, userId: member.id, amount: value, currency });
@@ -127,4 +125,3 @@ function refresh() {
   revalidatePath("/dashboard");
 }
 
-export type QuickInvoice = Invoice;

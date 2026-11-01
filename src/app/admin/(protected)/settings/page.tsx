@@ -39,7 +39,7 @@ export default async function SettingsPage({
 }) {
   const params = await searchParams;
   const settings = getSettings();
-  const { plan, pricing, smtp, fx } = settings;
+  const { plan, pricing, fx } = settings;
   const rate = latestStoredRate();
   const seatCost = perSeatMonthly(pricing, plan.seats);
 

@@ -1,8 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
-import { formatDate, formatMoney, relativeDays, today } from "@/lib/dates";
+import { today } from "@/lib/dates";
 import { openInvoiceFor, nextTermIndex } from "@/lib/billing";
 import { statusFor } from "@/lib/storage";
 import { db } from "@/lib/db";
@@ -15,7 +14,7 @@ import {
   MemberStorageCard,
   ProfileCards,
 } from "@/components/member/MemberSections";
-import { Notice, Stat } from "@/components/ui";
+import { Notice } from "@/components/ui";
 import InstallHint from "@/components/InstallHint";
 import type { Invoice } from "@/lib/types";
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { formatDate, formatDateTime, formatMoney, relativeDays, today } from "@/lib/dates";
+import { formatDate, formatMoney, relativeDays, today } from "@/lib/dates";
 import { seatCapacity, seatsUsed } from "@/lib/auth";
 import { latestStoredRate } from "@/lib/fx";
 import { removalCandidates } from "@/lib/reminders";

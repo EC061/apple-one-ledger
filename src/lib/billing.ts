@@ -152,7 +152,6 @@ export function markInvoicePaid(input: MarkPaidInput): Invoice {
   if (invoice.status === "paid") throw new BillingError("Invoice is already paid.");
   if (invoice.status === "void") throw new BillingError("Invoice was voided.");
 
-  const settings = getSettings();
   const amountUsd =
     input.currency === "CNY"
       ? Math.round((input.amount / (invoice.fx_rate || 1)) * 100) / 100

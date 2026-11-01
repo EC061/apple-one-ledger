@@ -3,18 +3,16 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { formatDate, formatDateTime, formatMoney, relativeDays } from "@/lib/dates";
-import { PLANS, priceFor } from "@/lib/pricing";
+import { formatDate } from "@/lib/dates";
+import { PLANS } from "@/lib/pricing";
 import TopBar from "@/components/TopBar";
-import CopyButton from "@/components/CopyButton";
 import {
   PayActionPanel,
   PayAmountCard,
   PayDestinations,
   PayStatusNotices,
 } from "@/components/member/PaySections";
-import PaymentForm from "@/components/PaymentForm";
-import { MethodBadge, Notice, StatusBadge } from "@/components/ui";
+import { Notice, StatusBadge } from "@/components/ui";
 import type { Invoice } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +39,6 @@ export default async function PayPage({
 
   const settings = getSettings();
   const pay = settings.payments;
-  const canPay = invoice.status === "awaiting_payment" || invoice.status === "overdue";
   const isAdminView = user.role === "admin";
 
   const methodRows = [
