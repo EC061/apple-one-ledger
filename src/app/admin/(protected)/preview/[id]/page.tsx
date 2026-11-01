@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { today } from "@/lib/dates";
 import { nextTermIndex, openInvoiceFor } from "@/lib/billing";
+import { paymentDestinations } from "@/lib/payment-destinations";
 import { MemberDashboard } from "@/components/member/MemberDashboard";
 import InstallHint from "@/components/InstallHint";
 import type { Invoice, User } from "@/lib/types";
@@ -26,6 +27,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
     .prepare("SELECT * FROM invoices WHERE user_id = ? AND status <> 'void' ORDER BY created_at DESC LIMIT 12")
     .all(user.id) as unknown as Invoice[];
   const covered = Boolean(user.paid_through && user.paid_through >= day);
+  const paymentMethods = paymentDestinations(settings.payments);
 
   return (
     <>
@@ -49,6 +51,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
         history={history}
         covered={covered}
         readOnly
+        paymentPreview={{ methodRows: paymentMethods, reference: open?.reference ?? null }}
       />
     </>
   );

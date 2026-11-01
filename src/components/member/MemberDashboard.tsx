@@ -5,6 +5,8 @@ import {
   MemberStats,
   ProfileCards,
 } from "@/components/member/MemberSections";
+import { PaymentMethodsCard } from "@/components/member/PaySections";
+import type { PaymentDestination } from "@/lib/payment-destinations";
 import type { Settings } from "@/lib/settings";
 import type { Invoice, User } from "@/lib/types";
 
@@ -21,6 +23,7 @@ export function MemberDashboard({
   history,
   covered,
   readOnly = false,
+  paymentPreview,
 }: {
   user: User;
   settings: Settings;
@@ -29,6 +32,8 @@ export function MemberDashboard({
   history: Invoice[];
   covered: boolean;
   readOnly?: boolean;
+  /** Preview only: show the member-facing payment methods after the invoice/term section. */
+  paymentPreview?: { methodRows: PaymentDestination[]; reference: string | null };
 }) {
   return (
     <>
@@ -41,6 +46,18 @@ export function MemberDashboard({
         readOnly={readOnly}
         isAdmin={user.role === "admin"}
       />
+      {paymentPreview ? (
+        <div className="stack">
+          <p className="muted small" style={{ marginBottom: 0 }}>
+            Payment methods shown to the member on the pay page.
+          </p>
+          <PaymentMethodsCard
+            settings={settings}
+            methodRows={paymentPreview.methodRows}
+            reference={paymentPreview.reference}
+          />
+        </div>
+      ) : null}
       <HistoryCard history={history} readOnly={readOnly} />
       <ProfileCards user={user} readOnly={readOnly} />
     </>

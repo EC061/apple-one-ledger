@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { formatDate } from "@/lib/dates";
 import { PLANS } from "@/lib/pricing";
+import { paymentDestinations } from "@/lib/payment-destinations";
 import TopBar from "@/components/TopBar";
 import {
   PayActionPanel,
@@ -41,12 +42,7 @@ export default async function PayPage({
   const pay = settings.payments;
   const isAdminView = user.role === "admin";
 
-  const methodRows = [
-    { key: "venmo", label: "Venmo", value: pay.venmoHandle ? `@${pay.venmoHandle}` : "" },
-    { key: "zelle", label: "Zelle", value: pay.zelleEmail },
-    { key: "wechat", label: "WeChat Pay", value: "", qr: pay.wechatQrUrl },
-    { key: "alipay", label: "Alipay", value: "", qr: pay.alipayQrUrl },
-  ];
+  const methodRows = paymentDestinations(pay);
   const configuredMethods = methodRows
     .filter((row) => row.value || row.qr)
     .map((row) => ({ value: row.key, label: row.label }));
