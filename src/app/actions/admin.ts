@@ -6,9 +6,12 @@ import { db, newId, nowIso, event } from "@/lib/db";
 import {
   generateCode,
   hashPassword,
+  openInviteCount,
   passwordProblem,
   requireAdmin,
   revokeUserSessions,
+  seatCapacity,
+  seatsUsed,
 } from "@/lib/auth";
 import {
   BillingError,
@@ -242,6 +245,7 @@ export async function createInviteAction(formData: FormData) {
   const expiresAt = addDays(today(getSettings().plan.timezone), days);
 
   if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) redirect("/admin/invites?error=email");
+  if (seatsUsed() + openInviteCount() >= seatCapacity()) redirect("/admin/invites?error=full");
 
   let code = generateCode(2, 5);
   for (let i = 0; i < 5; i++) {

@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { formatDate, formatDateTime, today } from "@/lib/dates";
-import { seatCapacity, seatsUsed } from "@/lib/auth";
+import { openInviteCount, seatCapacity, seatsUsed } from "@/lib/auth";
 import { getBaseUrl } from "@/lib/url";
 import { createInviteAction, revokeInviteAction } from "@/app/actions/admin";
 import { Empty, Notice } from "@/components/ui";
@@ -26,17 +26,24 @@ export default async function InvitesPage({
     .all() as unknown as Invite[];
 
   const active = invites.filter((invite) => !invite.used_at && !invite.revoked_at && (!invite.expires_at || invite.expires_at >= day));
+  const reserved = openInviteCount(day);
+  const openSeats = Math.max(seatCapacity() - seatsUsed() - reserved, 0);
 
   return (
     <>
       {params.created ? <Notice tone="ok">Invite created. Copy the link below, or send it by email.</Notice> : null}
       {params.error === "email" ? <Notice tone="error">Enter a valid email address for the invite.</Notice> : null}
+      {params.error === "full" ? (
+        <Notice tone="error">
+          No open seats left. Revoke an unused invite or remove a member before creating another.
+        </Notice>
+      ) : null}
 
       <div className="row-between">
         <div>
           <h1>Invites</h1>
           <p className="muted" style={{ marginBottom: 0 }}>
-            One seat per invite · {seatCapacity() - seatsUsed()} open seat(s)
+            One seat per invite · {openSeats} open · {reserved} link(s) reserving a seat
           </p>
         </div>
       </div>
@@ -52,7 +59,9 @@ export default async function InvitesPage({
         <div className="card-head">
           <div>
             <h2>Create an invite</h2>
-            <span className="muted small">The link works once and expires automatically.</span>
+            <span className="muted small">
+              The link works once and expires automatically. Creating it reserves a seat on the public page.
+            </span>
           </div>
           <span className="badge badge-paid">{active.length} active</span>
         </div>

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getSettings } from "@/lib/settings";
-import { seatCapacity, seatsUsed } from "@/lib/auth";
-import { formatMoney } from "@/lib/dates";
+import { openInviteCount, seatCapacity, seatsUsed } from "@/lib/auth";
+import { formatMoney, today } from "@/lib/dates";
 import { PLANS, PLAN_ORDER, perSeatMonthly } from "@/lib/pricing";
 import { dict, fill, getLang, type Copy } from "@/lib/i18n";
 import { getTheme } from "@/lib/theme";
@@ -23,7 +23,8 @@ export default async function HomePage() {
   const settings = getSettings();
   const t = dict[lang];
   const seatCost = perSeatMonthly(settings.pricing, settings.plan.seats);
-  const seatsLeft = Math.max(seatCapacity() - seatsUsed(), 0);
+  const day = today(settings.plan.timezone);
+  const seatsLeft = Math.max(seatCapacity() - seatsUsed() - openInviteCount(day), 0);
 
   return (
     <div className="page">
