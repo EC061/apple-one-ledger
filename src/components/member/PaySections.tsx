@@ -6,7 +6,73 @@ import PaymentForm from "@/components/PaymentForm";
 import CopyButton from "@/components/CopyButton";
 import { Notice } from "@/components/ui";
 import type { Settings } from "@/lib/settings";
+import type { PaymentDestination } from "@/lib/payment-destinations";
 import type { Invoice } from "@/lib/types";
+
+export function PaymentMethodsCard({
+  settings,
+  methodRows,
+  reference,
+}: {
+  settings: Settings;
+  methodRows: PaymentDestination[];
+  reference?: string | null;
+}) {
+  const pay = settings.payments;
+  const configured = methodRows.filter((item) => item.value || item.qr);
+
+  return (
+    <div className="card">
+      <div className="card-head">
+        <h2>Where to send it</h2>
+      </div>
+      <div className="card-body stack-sm">
+        {pay.instructions ? (
+          <div className="notice" style={{ whiteSpace: "pre-wrap" }}>
+            {pay.instructions}
+          </div>
+        ) : null}
+
+        {configured.length === 0 ? (
+          <p className="muted small" style={{ marginBottom: 0 }}>
+            No payment details are configured yet. Add them under Settings → Payment details.
+          </p>
+        ) : (
+          configured.map((item) => (
+            <div key={item.key} style={{ borderBottom: "1px solid var(--line)", paddingBottom: 10 }}>
+              <div className="row-between">
+                <span className="strong small">{item.label}</span>
+                {item.value ? (
+                  <span className="row" style={{ gap: 6 }}>
+                    <span className="mono small">{item.value}</span>
+                    <CopyButton value={item.value} label="Copy" />
+                  </span>
+                ) : item.qr ? (
+                  <span className="muted small">Scan the QR to pay</span>
+                ) : null}
+              </div>
+              {item.qr ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={item.qr} alt={`${item.label} QR code`} className="qr" style={{ marginTop: 8 }} />
+              ) : null}
+            </div>
+          ))
+        )}
+
+        {reference ? (
+          <p className="hint" style={{ marginBottom: 0 }}>
+            Always include <strong className="mono">{reference}</strong> in the note so the admin can match your
+            payment.
+          </p>
+        ) : (
+          <p className="hint" style={{ marginBottom: 0 }}>
+            The payment reference appears here once the member has an open invoice.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function PayDestinations({
   settings,
@@ -15,48 +81,11 @@ export function PayDestinations({
 }: {
   settings: Settings;
   invoice: Invoice;
-  methodRows: { key: string; label: string; value: string; qr?: string }[];
+  methodRows: PaymentDestination[];
 }) {
-  const pay = settings.payments;
   return (
             <div className="stack pay-destinations">
-              <div className="card">
-                <div className="card-head">
-                  <h2>Where to send it</h2>
-                </div>
-                <div className="card-body stack-sm">
-                  {pay.instructions ? (
-                    <div className="notice" style={{ whiteSpace: "pre-wrap" }}>
-                      {pay.instructions}
-                    </div>
-                  ) : null}
-
-                  {methodRows.filter((item) => item.value || item.qr).map((item) => (
-                    <div key={item.key} style={{ borderBottom: "1px solid var(--line)", paddingBottom: 10 }}>
-                      <div className="row-between">
-                        <span className="strong small">{item.label}</span>
-                        {item.value ? (
-                          <span className="row" style={{ gap: 6 }}>
-                            <span className="mono small">{item.value}</span>
-                            <CopyButton value={item.value} label="Copy" />
-                          </span>
-                        ) : item.qr ? (
-                          <span className="muted small">Scan the QR to pay</span>
-                        ) : null}
-                      </div>
-                      {item.qr ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={item.qr} alt={`${item.label} QR code`} className="qr" style={{ marginTop: 8 }} />
-                      ) : null}
-                    </div>
-                  ))}
-
-                  <p className="hint" style={{ marginBottom: 0 }}>
-                    Always include <strong className="mono">{invoice.reference}</strong> in the note. That is how
-                    automatic matching finds your payment.
-                  </p>
-                </div>
-              </div>
+              <PaymentMethodsCard settings={settings} methodRows={methodRows} reference={invoice.reference} />
 
               <div className="card card-pad">
                 <h3>Locked rate</h3>

@@ -38,7 +38,8 @@ Everything else is stored in SQLite and editable at **Admin → Settings**:
   own account by using `ADMIN_REG_CODE` with the same email on `/signup`.
 - Removing a seat revokes sessions, voids open invoices and frees the seat; history stays.
 - **Preview dashboard** in Members (or Pool → Preview) opens a read-only copy of that member's
-  dashboard, including coverage, invoices, term prices, history and profile.
+  dashboard, including coverage, invoices, term prices, payment handles/QR codes, history and
+  profile.
 - The installed PWA starts at **`/quick`**: a mobile control panel with per-member mark-paid,
   proof upload and WeChat/Alipay QR upload. Members are redirected to their dashboard.
 - The admin seat is reserved and never billed; it still counts toward the seat limit.
