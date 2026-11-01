@@ -60,24 +60,6 @@ export interface StorageSettings {
   notifyAdmin: boolean;
 }
 
-export interface AutomationSettings {
-  ingestEnabled: boolean;
-  imapEnabled: boolean;
-  toleranceUsd: number;
-  autoVerify: boolean;
-}
-
-export interface ImapSettings {
-  host: string;
-  port: number;
-  secure: boolean;
-  user: string;
-  pass: string;
-  mailbox: string;
-  /** Comma-separated sender allowlist; IMAP polling refuses to run when empty. */
-  allowedSenders: string;
-}
-
 export interface Settings {
   plan: PlanSettings;
   pricing: PricingSettings;
@@ -85,15 +67,13 @@ export interface Settings {
   smtp: SmtpSettings;
   fx: FxSettings;
   reminders: ReminderSettings;
-  automation: AutomationSettings;
-  imap: ImapSettings;
   storage: StorageSettings;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   plan: {
     name: "Apple One Premier + AppleCare One",
-    timezone: process.env.APP_TIMEZONE || "UTC",
+    timezone: "America/New_York",
     seats: 6,
     graceDays: 7,
     dueSoonDays: 7,
@@ -132,21 +112,6 @@ export const DEFAULT_SETTINGS: Settings = {
     overdueEveryDays: 3,
     adminDigest: true,
     removalWarningDays: 7,
-  },
-  automation: {
-    ingestEnabled: true,
-    imapEnabled: false,
-    toleranceUsd: 0.5,
-    autoVerify: true,
-  },
-  imap: {
-    host: "",
-    port: 993,
-    secure: true,
-    user: "",
-    pass: "",
-    mailbox: "INBOX",
-    allowedSenders: "",
   },
   storage: {
     enabled: true,

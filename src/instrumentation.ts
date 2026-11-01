@@ -1,17 +1,13 @@
 /**
  * Optional in-process scheduler.
  *
- * Set INTERNAL_SCHEDULER=true to run the daily job roughly every 6 hours
- * without an external cron. All work is deduplicated (reminder keys, digests),
- * so running it more often than daily is harmless.
- *
- * For production, prefer the external trigger:
- *   curl -X POST -H "Authorization: Bearer $CRON_SECRET" https://your-host/api/cron/daily
+ * Runs the daily job every 6 hours inside the container. All work is
+ * deduplicated (reminder keys, digests, storage alerts), so running it more
+ * often than daily is harmless. There is no external cron requirement.
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
   if (process.env.NEXT_PHASE === "phase-production-build") return;
-  if (process.env.INTERNAL_SCHEDULER !== "true") return;
 
   const store = globalThis as unknown as { __a1Scheduler?: boolean };
   if (store.__a1Scheduler) return;

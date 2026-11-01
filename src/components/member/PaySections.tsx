@@ -68,9 +68,7 @@ export function PayDestinations({
 
               <div className="notice small">
                 Rate source: {settings.fx.provider === "manual" ? "manual override set by the admin" : "daily reference rate (ECB via frankfurter.app)"}.
-                {settings.automation.autoVerify
-                  ? " Payments that match the reference and amount are confirmed automatically."
-                  : " Every payment is confirmed by the admin."}
+                Every payment is confirmed by the admin.
               </div>
             </div>
   );
@@ -146,11 +144,6 @@ export function PayAmountCard({ invoice, settings }: { invoice: Invoice; setting
                     <dd>
                       {formatMoney(invoice.amount_usd)} now
                       {invoice.term_index <= 1 ? " (introductory)" : " (renewal)"}
-                    </dd>
-                    <dt>Next renewal</dt>
-                    <dd>
-                      {formatMoney(priceFor(invoice.plan, invoice.term_index + 1, settings.pricing))} after{" "}
-                      {formatDate(invoice.period_end)}
                     </dd>
                     <dt>FX rate</dt>
                     <dd>

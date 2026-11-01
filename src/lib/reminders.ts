@@ -118,7 +118,6 @@ export interface DailyResult {
   remindersSent: number;
   digestSent: boolean;
   fxRefreshed: boolean;
-  imap?: { scanned: number; matched: number };
   storage?: { over: number; sent: number };
 }
 
@@ -164,17 +163,7 @@ export async function runDailyJobs(options: { skipEmail?: boolean } = {}): Promi
       }
     }
 
-    let imap: { scanned: number; matched: number } | undefined;
-    if (!options.skipEmail && settings.automation.imapEnabled) {
-      try {
-        const { pollImap } = await import("./reconcile");
-        imap = await pollImap();
-      } catch {
-        /* IMAP is best-effort */
-      }
-    }
-
-    return { day, overdueMarked, remindersSent, digestSent, fxRefreshed, imap, storage };
+    return { day, overdueMarked, remindersSent, digestSent, fxRefreshed, storage };
   } finally {
     schedulerState.__a1JobsRunning = false;
   }

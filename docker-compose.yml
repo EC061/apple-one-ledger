@@ -1,33 +1,20 @@
 services:
-  app:
-    build: .
-    # To deploy the published image instead of building locally:
-    #   image: ghcr.io/<your-github-user>/applecare-one-tracker:latest
-    image: ${IMAGE_NAME:-applecare-one-tracker:local}
-    container_name: applecare-one-tracker
-    restart: unless-stopped
-    init: true
-    ports:
-      - "${PORT:-3000}:3000"
-    env_file:
-      - .env
-    environment:
-      DATA_DIR: /data
-      DATABASE_PATH: /data/applecare.db
-      TZ: ${TZ:-UTC}
-    volumes:
-      - ./data:/data
-    healthcheck:
-      test:
-        - CMD
-        - node
-        - -e
-        - "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 25s
-    security_opt:
-      - no-new-privileges:true
-    # Read-only root filesystem works because all state lives in /data.
-    read_only: false
+    app:
+        container_name: apple-one-ledger
+        image: ghcr.io/ec061/apple-one-ledger:latest
+        restart: always
+        init: true
+        ports:
+            - "18900:3000"
+        environment:
+            DATA_DIR: /data
+            DATABASE_PATH: /data/applecare.db
+            PORT: "3000"
+            NODE_ENV: production
+            SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET (32+ random chars)}
+            ADMIN_REG_CODE: ${ADMIN_REG_CODE:?set ADMIN_REG_CODE}
+            APP_URL: ${APP_URL:-}
+        volumes:
+            - ./data:/data
+        security_opt:
+            - no-new-privileges:true

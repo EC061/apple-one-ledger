@@ -28,16 +28,19 @@ export default function PaymentForm({
     method && methods.some((entry) => entry.value === method) ? method : first,
   );
   const [txRef, setTxRef] = useState("");
+  const [amountSource, setAmountSource] = useState<"default" | "edited" | "assisted">("default");
 
   function changeCurrency(next: "USD" | "CNY") {
     setCurrency(next);
     setValue((next === "USD" ? amountUsd : amountCny).toFixed(2));
+    setAmountSource("default");
   }
 
   function applyParsed(parsed: ParsedPayment) {
     if (parsed.amount) {
       setCurrency(parsed.currency ?? currency);
       setValue(parsed.amount.toFixed(2));
+      setAmountSource("assisted");
     }
     if (parsed.txRef) setTxRef(parsed.txRef);
   }
@@ -45,6 +48,7 @@ export default function PaymentForm({
   return (
     <form action={submitPaymentAction} className="stack-sm">
       <input type="hidden" name="invoiceId" value={invoiceId} />
+      <input type="hidden" name="amountSource" value={amountSource} />
 
       <PaymentAssist onFill={applyParsed} />
 
@@ -85,7 +89,10 @@ export default function PaymentForm({
             className="input"
             inputMode="decimal"
             value={value}
-            onChange={(event) => setValue(event.target.value)}
+            onChange={(event) => {
+              setValue(event.target.value);
+              setAmountSource("edited");
+            }}
             required
           />
           <span className="hint">

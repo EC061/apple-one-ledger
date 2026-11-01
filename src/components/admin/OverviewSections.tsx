@@ -34,7 +34,7 @@ export function OpenPaymentsCard({ open, settings }: { open: OpenInvoice[]; sett
                   <th className="right">Amount</th>
                   <th>Due</th>
                   <th>Status</th>
-                  <th />
+                  <th><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -165,7 +165,7 @@ export function PendingReviewCard({
                   <th>Method</th>
                   <th className="right">Received</th>
                   <th>When</th>
-                  <th />
+                  <th><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -257,9 +257,8 @@ export function StoragePoolCard({
               );
             })}
             <p className="hint" style={{ marginTop: 10, marginBottom: 0 }}>
-              Update usage per member under <Link href="/admin/members">Members</Link>, or POST to{" "}
-              <span className="mono">/api/storage/update</span>. Apple has no public API for family storage, so values
-              are reported rather than scraped.
+              Update usage per member under <Link href="/admin/members">Members</Link>. Apple has no public API for
+              family storage, so values are reported rather than scraped.
             </p>
           </div>
         </div>
@@ -310,14 +309,6 @@ export function ActivitySystemCards({
             <div className="row-between">
               <span>Reminders</span>
               {settings.reminders.enabled ? <span className="badge badge-paid">On</span> : <span className="badge badge-void">Off</span>}
-            </div>
-            <div className="row-between">
-              <span>Automatic matching</span>
-              {settings.automation.autoVerify ? <span className="badge badge-paid">On</span> : <span className="badge badge-void">Manual</span>}
-            </div>
-            <div className="row-between">
-              <span>IMAP polling</span>
-              {settings.automation.imapEnabled ? <span className="badge badge-paid">On</span> : <span className="badge badge-void">Off</span>}
             </div>
             <div className="row-between">
               <span>FX rate</span>

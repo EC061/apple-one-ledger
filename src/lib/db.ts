@@ -127,14 +127,6 @@ CREATE TABLE IF NOT EXISTS settings (
   updated_at TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS storage_observations (
-  id          TEXT PRIMARY KEY,
-  source      TEXT NOT NULL,
-  observed_at TEXT NOT NULL,
-  payload     TEXT NOT NULL,
-  created_at  TEXT NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS storage_readings (
   id          TEXT PRIMARY KEY,
   user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -1,9 +1,15 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { formatMoney } from "@/lib/dates";
 import { PLANS, PLAN_ORDER, perSeatMonthly } from "@/lib/pricing";
 import { Brand } from "@/components/ui";
+
+export const metadata: Metadata = {
+  title: "Shared family plan",
+  description: "Cost-sharing ledger for a shared Apple One Premier + AppleCare One family plan.",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -127,8 +133,8 @@ export default async function HomePage() {
                 grace period are flagged for removal.
               </li>
               <li>
-                <strong>Automatic matching:</strong> when a payment arrives with your reference code, the ledger can
-                reconcile it for you — otherwise the admin confirms it manually.
+                <strong>Confirmation:</strong> report the payment with its amount and transaction id; the admin
+                reviews and approves it, and you get a receipt by email.
               </li>
             </ul>
           </div>
