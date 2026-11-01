@@ -55,26 +55,31 @@ cp .env.example .env
 #   openssl rand -base64 48
 # optional but recommended: INGEST_TOKEN, STORAGE_TOKEN, CRON_SECRET
 
-docker compose up -d --build
+docker compose pull
+docker compose up -d
+```
+
+The compose file pulls `ghcr.io/ec061/apple-one-ledger:${TAG:-latest}` and keeps SQLite in
+`./data`. To build the image yourself instead:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
 ```
 
 Open `http://localhost:3000/admin/login`, enter your email and the `ADMIN_REG_CODE`,
 then create invites under **Invites**.
 
-### Using the published image
+### Published image
 
 Every push to `main` and every `v*.*.*` tag builds `linux/amd64` + `linux/arm64` images:
 
-```yaml
-services:
-  app:
-    image: ghcr.io/<your-github-user>/applecare-one-tracker:latest
-    # ...
+```bash
+docker pull ghcr.io/ec061/apple-one-ledger:latest
 ```
 
-```bash
-docker pull ghcr.io/<your-github-user>/applecare-one-tracker:latest
-```
+Set `TAG` in `.env` to pin a version (`TAG=v1.2.3`) or a digest. The workflow writes a
+registry build cache to `ghcr.io/ec061/apple-one-ledger:buildcache`, so rebuilds only redo the
+layers that changed.
 
 The workflow is `.github/workflows/docker-publish.yml` and uses the built-in `GITHUB_TOKEN`
 (`packages: write`). No extra secrets needed. Make the package public in GitHub package
