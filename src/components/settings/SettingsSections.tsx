@@ -592,3 +592,74 @@ export async function EmailLogCard() {
     </>
   );
 }
+
+export async function AppCard() {
+  const { app } = getSettings();
+  return (
+    <>
+      <div className="card" id="app">
+        <div className="card-head">
+          <div>
+            <h2>Application behaviour</h2>
+            <span className="muted small">Hard limits that used to be baked into the code.</span>
+          </div>
+        </div>
+        <div className="card-body">
+          <form action={saveSettingsAction} className="stack">
+            <input type="hidden" name="intent" value="app" />
+            <div className="form-grid">
+              <div className="field">
+                <label className="label" htmlFor="sessionDays">
+                  Session lifetime (days)
+                </label>
+                <input
+                  id="sessionDays"
+                  name="sessionDays"
+                  type="number"
+                  min={1}
+                  max={365}
+                  className="input"
+                  defaultValue={app.sessionDays}
+                />
+                <span className="hint">How long a member stays signed in before the code is required again.</span>
+              </div>
+              <div className="field">
+                <label className="label" htmlFor="schedulerHours">
+                  Scheduler interval (hours)
+                </label>
+                <input
+                  id="schedulerHours"
+                  name="schedulerHours"
+                  type="number"
+                  min={1}
+                  max={168}
+                  className="input"
+                  defaultValue={app.schedulerHours}
+                />
+                <span className="hint">Takes effect on the next container restart.</span>
+              </div>
+              <div className="field">
+                <label className="label" htmlFor="paymentToleranceUsd">
+                  Payment tolerance (USD)
+                </label>
+                <input
+                  id="paymentToleranceUsd"
+                  name="paymentToleranceUsd"
+                  className="input"
+                  inputMode="decimal"
+                  defaultValue={app.paymentToleranceUsd}
+                />
+                <span className="hint">A payment within this amount of the invoice is treated as paid in full.</span>
+              </div>
+            </div>
+            <div>
+              <SubmitButton className="btn btn-primary" pending="Saving…">
+                Save application settings
+              </SubmitButton>
+            </div>
+          </form>
+        </div>
+      </div>
+    </>
+  );
+}

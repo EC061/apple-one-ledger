@@ -26,6 +26,8 @@ export async function register() {
   const first = setTimeout(run, 45_000);
   if (typeof first.unref === "function") first.unref();
 
-  const interval = setInterval(run, 6 * 60 * 60 * 1000);
+  const { getSettings } = await import("./lib/settings");
+  const hours = Math.max(1, Math.min(getSettings().app.schedulerHours || 6, 168));
+  const interval = setInterval(run, hours * 60 * 60 * 1000);
   if (typeof interval.unref === "function") interval.unref();
 }

@@ -159,6 +159,14 @@ export async function saveSettingsAction(formData: FormData) {
     });
   }
 
+  if (intent === "app") {
+    saveSection("app", {
+      sessionDays: Math.round(clamp(number(formData, "sessionDays", current.app.sessionDays), 1, 365)),
+      schedulerHours: Math.round(clamp(number(formData, "schedulerHours", current.app.schedulerHours), 1, 168)),
+      paymentToleranceUsd: clamp(number(formData, "paymentToleranceUsd", current.app.paymentToleranceUsd), 0, 100),
+    });
+  }
+
   if (intent === "storage") {
     saveSection("storage", {
       enabled: flag(formData, "enabled"),

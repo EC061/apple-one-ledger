@@ -8,7 +8,6 @@ import { isHttps, requestMeta } from "./url";
 import type { User } from "./types";
 
 export const SESSION_COOKIE = "a1_session";
-const SESSION_DAYS = 30;
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -70,7 +69,8 @@ export async function createSession(userId: string) {
   const token = randomBytes(32).toString("base64url");
   const meta = await requestMeta();
   const created = new Date();
-  const expires = new Date(created.getTime() + SESSION_DAYS * 86_400_000);
+  const sessionDays = Math.max(1, Math.min(getSettings().app.sessionDays || 30, 365));
+  const expires = new Date(created.getTime() + sessionDays * 86_400_000);
 
   db()
     .prepare(
@@ -87,7 +87,7 @@ export async function createSession(userId: string) {
     sameSite: "lax",
     secure,
     path: "/",
-    maxAge: SESSION_DAYS * 86_400,
+    maxAge: sessionDays * 86_400,
   });
 }
 

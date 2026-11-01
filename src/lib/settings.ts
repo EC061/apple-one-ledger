@@ -48,6 +48,15 @@ export interface ReminderSettings {
   removalWarningDays: number;
 }
 
+export interface AppSettings {
+  /** Session + cookie lifetime. */
+  sessionDays: number;
+  /** How often the in-process scheduler runs. */
+  schedulerHours: number;
+  /** Rounding/transfer-fee tolerance before a payment counts as short. */
+  paymentToleranceUsd: number;
+}
+
 export interface StorageSettings {
   enabled: boolean;
   totalGb: number;
@@ -68,6 +77,7 @@ export interface Settings {
   fx: FxSettings;
   reminders: ReminderSettings;
   storage: StorageSettings;
+  app: AppSettings;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -112,6 +122,11 @@ export const DEFAULT_SETTINGS: Settings = {
     overdueEveryDays: 3,
     adminDigest: true,
     removalWarningDays: 7,
+  },
+  app: {
+    sessionDays: 30,
+    schedulerHours: 6,
+    paymentToleranceUsd: 0.5,
   },
   storage: {
     enabled: true,

@@ -8,6 +8,7 @@ export default function TopBar({ user, area }: { user: User; area: "member" | "a
     area === "admin"
       ? [
           { href: "/admin", label: "Overview", exact: true },
+          { href: "/admin/pool", label: "Pool" },
           { href: "/admin/members", label: "Members" },
           { href: "/admin/invoices", label: "Invoices" },
           { href: "/admin/invites", label: "Invites" },

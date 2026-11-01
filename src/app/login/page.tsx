@@ -71,6 +71,7 @@ export default async function LoginPage({
         </div>
         <div className="row-between small" style={{ marginTop: 10 }}>
           <Link href="/">← Back to overview</Link>
+          <Link href="/about">How it works</Link>
           <Link href="/admin/login">Admin sign in</Link>
         </div>
       </div>
