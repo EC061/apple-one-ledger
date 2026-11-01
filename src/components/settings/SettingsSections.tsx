@@ -262,10 +262,29 @@ export async function SmtpCard() {
                 <span className="hint">Leave blank to keep the stored password.</span>
               </div>
               <div className="field">
-                <label className="label" htmlFor="smtp-from">
-                  From address
+                <label className="label" htmlFor="smtp-from-name">
+                  From name
                 </label>
-                <input id="smtp-from" name="from" className="input" defaultValue={smtp.from} placeholder="Family Plan <plan@example.com>" />
+                <input
+                  id="smtp-from-name"
+                  name="fromName"
+                  className="input"
+                  defaultValue={smtp.fromName}
+                  placeholder="Family Plan"
+                />
+              </div>
+              <div className="field">
+                <label className="label" htmlFor="smtp-from-email">
+                  From email
+                </label>
+                <input
+                  id="smtp-from-email"
+                  name="fromEmail"
+                  type="email"
+                  className="input"
+                  defaultValue={smtp.fromEmail}
+                  placeholder="plan@example.com"
+                />
               </div>
               <div className="field">
                 <label className="check" style={{ marginTop: 22 }}>

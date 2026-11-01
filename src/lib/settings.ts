@@ -33,7 +33,8 @@ export interface SmtpSettings {
   secure: boolean;
   user: string;
   pass: string;
-  from: string;
+  fromName: string;
+  fromEmail: string;
 }
 
 export interface FxSettings {
@@ -122,7 +123,8 @@ export const DEFAULT_SETTINGS: Settings = {
     secure: false,
     user: "",
     pass: "",
-    from: "",
+    fromName: "",
+    fromEmail: "",
   },
   fx: {
     provider: "frankfurter",
@@ -187,6 +189,18 @@ export function getSettings(): Settings {
   const target = merged as unknown as Record<string, unknown>;
   for (const section of Object.keys(DEFAULT_SETTINGS) as SettingsSection[]) {
     target[section] = merge<unknown>(DEFAULT_SETTINGS[section], stored[section]);
+  }
+
+  // Upgrade from the old combined "Name <email>" sender field.
+  const legacyFrom = (stored.smtp as { from?: unknown } | undefined)?.from;
+  if (!merged.smtp.fromEmail && typeof legacyFrom === "string") {
+    const match = legacyFrom.match(/^\s*(.*?)\s*<([^>]+)>\s*$/);
+    if (match) {
+      merged.smtp.fromName = merged.smtp.fromName || match[1];
+      merged.smtp.fromEmail = match[2].trim();
+    } else if (legacyFrom.includes("@")) {
+      merged.smtp.fromEmail = legacyFrom.trim();
+    }
   }
   return merged;
 }

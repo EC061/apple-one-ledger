@@ -47,7 +47,11 @@ export default async function SettingsPage({
     <>
       {params.saved ? <Notice tone="ok">{(params.saved && SAVED[params.saved]) ?? "Saved."}</Notice> : null}
       {params.error ? (
-        <Notice tone="error">That change could not be saved. Check the server log for the exact error.</Notice>
+        <Notice tone="error">
+          {params.error === "from-email"
+            ? "Enter a valid From email address."
+            : "That change could not be saved. Check the server log for the exact error."}
+        </Notice>
       ) : null}
 
       <div className="row-between">
