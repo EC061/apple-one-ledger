@@ -1166,3 +1166,98 @@ details[open] > summary {
     text-align: left;
   }
 }
+
+/* ---------------------------------------------------------------- */
+/* Public hero: two subscriptions                                   */
+/* ---------------------------------------------------------------- */
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 0.9fr;
+  gap: 40px;
+  align-items: center;
+}
+
+.hero-visual {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sub-card {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: var(--shadow);
+}
+
+.sub-card-alt {
+  margin-left: 28px;
+}
+
+.sub-kicker {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--brand);
+}
+
+.sub-card strong {
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+
+.sub-note {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.sub-quota {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--brand);
+  font-variant-numeric: tabular-nums;
+}
+
+.service-group + .service-group {
+  margin-top: 8px;
+}
+
+.group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.group-head h3 {
+  margin: 0;
+}
+
+@media (max-width: 860px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 26px;
+  }
+  .hero-visual {
+    flex-direction: row;
+  }
+  .sub-card {
+    flex: 1;
+  }
+  .sub-card-alt {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .hero-visual {
+    flex-direction: column;
+  }
+}

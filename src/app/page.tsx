@@ -41,7 +41,7 @@ export default async function HomePage() {
       </header>
 
       <main className="grow">
-        <Hero t={t} seats={settings.plan.seats} planName={settings.plan.name} />
+        <Hero t={t} seats={settings.plan.seats} planName={settings.plan.name} quota={quota} />
         <div className="container stack" style={{ paddingBottom: 56 }}>
           <ServicesSection t={t} services={settings.plan.services} quota={quota} shareCount={settings.storage.shareCount} />
           <PricingSection t={t} pricing={settings.pricing} />
@@ -67,20 +67,36 @@ export default async function HomePage() {
   );
 }
 
-function Hero({ t, seats, planName }: { t: Copy; seats: number; planName: string }) {
+function Hero({ t, seats, planName, quota }: { t: Copy; seats: number; planName: string; quota: number }) {
   return (
     <section className="hero">
-      <div className="container">
-        <span className="eyebrow">{fill(t.eyebrow, { seats })}</span>
-        <h1>{fill(t.h1, { seats })}</h1>
-        <p className="lede">{fill(t.lede, { plan: planName })}</p>
-        <div className="row">
-          <Link href="/login" className="btn btn-primary">
-            {t.ctaSignIn}
-          </Link>
-          <Link href="#how-it-works" className="btn btn-secondary">
-            {t.ctaHow}
-          </Link>
+      <div className="container hero-grid">
+        <div>
+          <span className="eyebrow">{fill(t.eyebrow, { seats })}</span>
+          <h1>{fill(t.h1, { seats })}</h1>
+          <p className="lede">{fill(t.lede, { plan: planName, seats })}</p>
+          <div className="row">
+            <Link href="/login?signup=1" className="btn btn-primary">
+              {t.signUp}
+            </Link>
+            <Link href="/login" className="btn btn-secondary">
+              {t.signIn}
+            </Link>
+          </div>
+        </div>
+
+        <div className="hero-visual" aria-hidden="true">
+          <div className="sub-card">
+            <span className="sub-kicker">01</span>
+            <strong>{t.groupOne}</strong>
+            <span className="sub-note">{t.groupOneNote}</span>
+            <span className="sub-quota">{fill(t.icloudNote, { gb: quota })}</span>
+          </div>
+          <div className="sub-card sub-card-alt">
+            <span className="sub-kicker">02</span>
+            <strong>{t.groupTwo}</strong>
+            <span className="sub-note">{t.groupTwoNote}</span>
+          </div>
         </div>
       </div>
     </section>
@@ -98,7 +114,8 @@ function ServicesSection({
   quota: number;
   shareCount: number;
 }) {
-  const others = services.filter((name) => !name.toLowerCase().includes(ICY.toLowerCase()));
+  const appleOne = services.filter((name) => !/applecare/i.test(name));
+  const appleCare = services.filter((name) => /applecare/i.test(name));
 
   return (
     <section id="services" className="stack">
@@ -108,27 +125,50 @@ function ServicesSection({
           {fill(t.servicesSub, { n: services.length })}
         </p>
       </div>
-      <div className="services-grid">
-        {others.map((name) => (
-          <div key={name} className="service-tile">
-            <div className="service-name">{name}</div>
-          </div>
-        ))}
-        <div className="service-tile service-icloud">
-          <div className="row-between">
-            <div>
-              <div className="service-name">{t.icloudName}</div>
-              <div className="service-note">{fill(t.icloudNote, { gb: quota })}</div>
+
+      <div className="service-group">
+        <div className="group-head">
+          <h3>{t.groupOne}</h3>
+          <span className="muted small">{t.groupOneNote}</span>
+        </div>
+        <div className="services-grid">
+          {appleOne.map((name) => (
+            <div key={name} className="service-tile">
+              <div className="service-name">{name}</div>
             </div>
-            <span className="pill">{quota} GB</span>
-          </div>
-          <div className="segbar" aria-label={t.icloudBar}>
-            {Array.from({ length: Math.min(Math.max(shareCount, 1), 12) }).map((_, index) => (
-              <span key={index} />
-            ))}
+          ))}
+          <div className="service-tile service-icloud">
+            <div className="row-between">
+              <div>
+                <div className="service-name">{t.icloudName}</div>
+                <div className="service-note">{fill(t.icloudNote, { gb: quota })}</div>
+              </div>
+              <span className="pill">{quota} GB</span>
+            </div>
+            <div className="segbar" aria-label={t.icloudBar}>
+              {Array.from({ length: Math.min(Math.max(shareCount, 1), 12) }).map((_, index) => (
+                <span key={index} />
+              ))}
+            </div>
           </div>
         </div>
       </div>
+
+      {appleCare.length ? (
+        <div className="service-group">
+          <div className="group-head">
+            <h3>{t.groupTwo}</h3>
+            <span className="muted small">{t.groupTwoNote}</span>
+          </div>
+          <div className="services-grid">
+            {appleCare.map((name) => (
+              <div key={name} className="service-tile">
+                <div className="service-name">{name}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
