@@ -1261,3 +1261,15 @@ details[open] > summary {
     flex-direction: column;
   }
 }
+
+.price-month {
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand);
+  font-variant-numeric: tabular-nums;
+}
+
+.price-renew {
+  font-variant-numeric: tabular-nums;
+}

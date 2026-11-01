@@ -183,16 +183,25 @@ function PricingSection({ t, pricing }: { t: Copy; pricing: ReturnType<typeof ge
         </p>
       </div>
       <div className="price-grid">
-        {PLAN_ORDER.map((key, index) => (
-          <div key={key} className={`price-card ${index === 1 ? "featured" : ""}`}>
-            <div className="price-name">{PLANS[key].label}</div>
-            <div className="price-amount">
-              {formatMoney(pricing.firstTerm[key])} <span>{t.firstTerm}</span>
+        {PLAN_ORDER.map((key, index) => {
+          const months = PLANS[key].months;
+          const first = pricing.firstTerm[key];
+          const renewal = pricing.renewal[key];
+          return (
+            <div key={key} className={`price-card ${index === 1 ? "featured" : ""}`}>
+              <div className="price-name">{PLANS[key].label}</div>
+              <div className="price-amount">
+                {formatMoney(first)} <span>{t.firstTerm}</span>
+              </div>
+              <div className="price-month">{fill(t.perMonth, { amount: formatMoney(first / months) })}</div>
+              <div className="price-note">{fill(t.months, { n: months })}</div>
+              <div className="price-renew">
+                {fill(t.renewal, { amount: formatMoney(renewal) })} ·{" "}
+                {fill(t.perMonth, { amount: formatMoney(renewal / months) })}
+              </div>
             </div>
-            <div className="price-note">{fill(t.months, { n: PLANS[key].months })}</div>
-            <div className="price-renew">{fill(t.renewal, { amount: formatMoney(pricing.renewal[key]) })}</div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
