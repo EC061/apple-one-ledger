@@ -1,13 +1,19 @@
-/* Cache only immutable build assets and icons. Never HTML or API responses:
-   they are session-specific and must always hit the server. */
-const CACHE = "a1-static-v1";
+/* Cache only immutable build assets. Never HTML or API responses: they are
+   session-specific and must always hit the server. Bump CACHE to invalidate. */
+const CACHE = "a1-static-v2";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)));
+      await self.clients.claim();
+    })(),
+  );
 });
 
 self.addEventListener("fetch", (event) => {
@@ -16,15 +22,18 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  if (!url.pathname.startsWith("/_next/static/") && !url.pathname.startsWith("/icons/")) return;
+  if (!url.pathname.startsWith("/_next/static/")) return;
 
   event.respondWith(
-    caches.open(CACHE).then(async (cache) => {
+    (async () => {
+      const cache = await caches.open(CACHE);
       const hit = await cache.match(request);
       if (hit) return hit;
       const response = await fetch(request);
-      if (response.ok) cache.put(request, response.clone());
+      if (response.ok) {
+        event.waitUntil(cache.put(request, response.clone()));
+      }
       return response;
-    }),
+    })(),
   );
 });

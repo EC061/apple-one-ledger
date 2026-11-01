@@ -50,14 +50,12 @@ export function requestMeta() {
 }
 
 /**
- * X-Forwarded-For is client-controlled unless a trusted proxy appends to it.
- * TRUST_PROXY_HOPS=1 (default) takes the right-most entry, which is the one
- * your proxy added. Set 0 to ignore the header entirely.
+ * Single reverse proxy assumed: the right-most X-Forwarded-For entry is the
+ * one your proxy added. x-real-ip wins when present.
  */
 function clientIp(forwarded: string | null, realIp: string | null): string | null {
-  const hops = Number(process.env.TRUST_PROXY_HOPS ?? 1);
-  if (!Number.isFinite(hops) || hops <= 0) return realIp || null;
-  if (!forwarded) return realIp || null;
+  if (realIp) return realIp;
+  if (!forwarded) return null;
   const parts = forwarded.split(",").map((value) => value.trim()).filter(Boolean);
-  return parts[parts.length - Math.min(hops, parts.length)] || realIp || null;
+  return parts[parts.length - 1] || null;
 }

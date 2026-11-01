@@ -127,8 +127,8 @@ export default async function HomePage() {
                 grace period are flagged for removal.
               </li>
               <li>
-                <strong>Automatic matching:</strong> when a payment arrives with your reference code, the ledger can
-                reconcile it for you — otherwise the admin confirms it manually.
+                <strong>Confirmation:</strong> report the payment with its amount and transaction id; the admin
+                reviews and approves it, and you get a receipt by email.
               </li>
             </ul>
           </div>

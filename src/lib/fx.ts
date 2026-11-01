@@ -3,7 +3,7 @@ import { getSettings, patchSection } from "./settings";
 import { today } from "./dates";
 import type { FxRate } from "./types";
 
-const FALLBACK_RATE = Number(process.env.FX_FALLBACK_RATE || 7.2);
+const FALLBACK_RATE = 7;
 
 export interface CurrentRate {
   rate: number;

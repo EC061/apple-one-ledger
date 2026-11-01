@@ -116,33 +116,10 @@ def bytes_to_gb(key: str, value: float) -> float:
     return value / 1_000_000_000 if "byte" in key.lower() else value
 
 
-def post_observation(base_url: str, token: str, readings: list[dict]) -> None:
-    body = json.dumps(
-        {
-            "observationId": __import__("uuid").uuid4().hex,
-            "observedAt": __import__("datetime").datetime.now(
-                __import__("datetime").timezone.utc
-            ).isoformat().replace("+00:00", "Z"),
-            "source": "icloud-probe",
-            "readings": readings,
-        }
-    ).encode()
-    request = urllib.request.Request(
-        f"{base_url.rstrip('/')}/api/storage/observations",
-        data=body,
-        method="POST",
-        headers={"content-type": "application/json", "authorization": f"Bearer {token}"},
-    )
-    with urllib.request.urlopen(request, timeout=30) as response:
-        print(response.read().decode())
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--username", required=True, help="Apple ID email")
     parser.add_argument("--cookie-dir", default=str(Path.home() / ".pyicloud"))
-    parser.add_argument("--post-to", help="https://your-ledger.example.com")
-    parser.add_argument("--token", help="STORAGE_TOKEN for the observation endpoint")
     parser.add_argument("--out", help="write raw JSON payloads here")
     args = parser.parse_args()
 
@@ -202,22 +179,6 @@ def main() -> None:
 
     print("Found candidate per-member values:")
     print(json.dumps(usable, indent=2))
-
-    if args.post_to:
-        if not args.token:
-            sys.exit("--post-to needs --token")
-        by_dsid = {str(m.get("dsid")): m for m in members}
-        readings = []
-        for dsid, values in usable.items():
-            member = by_dsid.get(dsid, {})
-            email = member.get("appleId") or member.get("originalInvitationEmail")
-            gb = next(iter(values.values()))
-            if email and gb:
-                readings.append({"email": email, "usedGb": round(gb, 2)})
-        if readings:
-            post_observation(args.post_to, args.token, readings)
-        else:
-            print("No email/dsid mapping for the readings; nothing was posted.")
 
 
 if __name__ == "__main__":

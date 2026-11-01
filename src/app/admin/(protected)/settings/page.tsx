@@ -7,7 +7,6 @@ import { smtpConfigured } from "@/lib/email";
 import { Notice } from "@/components/ui";
 import {
   AdminProfileCard,
-  AutomationCard,
   EmailLogCard,
   FxCard,
   PaymentDetailsCard,
@@ -25,7 +24,6 @@ const SAVED: Record<string, string> = {
   smtp: "SMTP settings saved.",
   fx: "Exchange-rate settings saved.",
   reminders: "Reminder settings saved.",
-  automation: "Automation settings saved.",
   storage: "Storage settings saved.",
   profile: "Profile updated.",
   "smtp-test": "Test email sent — check the inbox.",
@@ -60,7 +58,7 @@ export default async function SettingsPage({
         <div className="row small muted">
           <Link href="#pricing">Pricing</Link>·<Link href="#payments">Payments</Link>·<Link href="#email">Email</Link>·
           <Link href="#fx">FX</Link>·<Link href="#reminders">Reminders</Link>·<Link href="#storage">Storage</Link>·
-          <Link href="#automation">Automation</Link>·<Link href="#profile">Profile</Link>
+          <Link href="#profile">Profile</Link>
         </div>
       </div>
 
@@ -95,7 +93,6 @@ export default async function SettingsPage({
       <FxCard />
       <RemindersCard />
       <StorageCard />
-      <AutomationCard />
       <AdminProfileCard />
       <EmailLogCard />
     </>

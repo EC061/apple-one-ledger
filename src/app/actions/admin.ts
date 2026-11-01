@@ -21,7 +21,7 @@ import {
 import { getCurrentRate, refreshRate } from "@/lib/fx";
 import { getSettings, saveSection } from "@/lib/settings";
 import { isPlan } from "@/lib/pricing";
-import { isPaymentMethod } from "@/lib/reconcile";
+import { isPaymentMethod } from "@/lib/labels";
 import {
   sendMail,
   sendInviteEmail,
@@ -32,7 +32,7 @@ import {
   smtpConfigured,
 } from "@/lib/email";
 import { runDailyJobs, sendAdminDigest } from "@/lib/reminders";
-import { StorageError, updateStorage } from "@/lib/storage";
+import { updateStorage } from "@/lib/storage";
 import { getBaseUrl } from "@/lib/url";
 import { setAccessCodeFlash } from "@/lib/flash";
 import { addDays, today } from "@/lib/dates";
@@ -169,26 +169,6 @@ export async function saveSettingsAction(formData: FormData) {
       notifyMember: flag(formData, "notifyMember"),
       notifyAdmin: flag(formData, "notifyAdmin"),
     });
-  }
-
-  if (intent === "automation") {
-    saveSection("automation", {
-      ingestEnabled: flag(formData, "ingestEnabled"),
-      imapEnabled: flag(formData, "imapEnabled"),
-      toleranceUsd: clamp(number(formData, "toleranceUsd", 0.5), 0, 100),
-      autoVerify: flag(formData, "autoVerify"),
-    });
-    if (flag(formData, "imapEnabled")) {
-      saveSection("imap", {
-        host: text(formData, "imapHost"),
-        port: Math.round(clamp(number(formData, "imapPort", 993), 1, 65535)),
-        secure: flag(formData, "imapSecure"),
-        user: text(formData, "imapUser"),
-        pass: text(formData, "imapPass") || current.imap.pass,
-        mailbox: text(formData, "imapMailbox") || "INBOX",
-        allowedSenders: text(formData, "imapAllowedSenders").slice(0, 500),
-      });
-    }
   }
 
   event(null, "settings.saved", { intent });

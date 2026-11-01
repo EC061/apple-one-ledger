@@ -53,20 +53,19 @@ cd applecare-one-tracker
 cp .env.example .env
 # edit .env — at minimum SESSION_SECRET (32+ chars) and ADMIN_REG_CODE
 #   openssl rand -base64 48
-# optional but recommended: INGEST_TOKEN, STORAGE_TOKEN, CRON_SECRET
 
 docker compose pull
 docker compose up -d
 ```
 
-The compose file pulls `ghcr.io/ec061/apple-one-ledger:${TAG:-latest}` and keeps SQLite in
+The compose file pulls `ghcr.io/ec061/apple-one-ledger:latest` and keeps SQLite in
 `./data`. To build the image yourself instead:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
 ```
 
-Open `http://localhost:3000/admin/login`, enter your email and the `ADMIN_REG_CODE`,
+Open `http://localhost:18900/admin/login`, enter your email and the `ADMIN_REG_CODE`,
 then create invites under **Invites**.
 
 ### Published image
@@ -91,18 +90,12 @@ settings if you want anonymous pulls.
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
-| `SESSION_SECRET` | yes | Peppers access-code hashes and session tokens. Changing it invalidates all member codes. |
+| `SESSION_SECRET` | yes | Peppers access-code hashes. 32+ chars; changing it invalidates all member codes. |
 | `ADMIN_REG_CODE` | yes | Password for `/admin/login`. Never written to the database. |
-| `INGEST_TOKEN` | recommended | Bearer token for `/api/payments/ingest` (can mark invoices paid). |
-| `STORAGE_TOKEN` | recommended | Separate bearer token for `/api/storage/update`. Falls back to `INGEST_TOKEN` if unset. |
-| `CRON_SECRET` | recommended | Bearer token for `/api/cron/daily`. |
-| `APP_URL` | optional | Canonical public URL (e.g. `https://plan.example.com`). Without it, links follow `X-Forwarded-Proto` / `X-Forwarded-Host`. |
-| `APP_TIMEZONE` | optional | IANA zone for "today", due dates, digests. Default `UTC`. |
-| `DATA_DIR` / `DATABASE_PATH` | optional | Defaults `/data` and `/data/applecare.db` in Docker. |
-| `INTERNAL_SCHEDULER` | optional | `true` runs the daily job in-process every 6 h. |
-| `COOKIE_SECURE` | optional | `true`/`false` override; otherwise auto-detected. |
-| `TRUST_PROXY_HOPS` | optional | How many proxies to trust in `X-Forwarded-For` (default 1). Set 0 to ignore it. |
-| `FX_FALLBACK_RATE` | optional | Last-resort USD→CNY rate (default 7.2). |
+| `APP_URL` | optional | Canonical public URL (e.g. `https://plan.example.com`). Without it, links follow `X-Forwarded-*`. |
+| `DATA_DIR` / `DATABASE_PATH` | compose sets them | `/data` and `/data/applecare.db`. |
+| `PORT` | compose sets it | Internal listen port `3000`; compose publishes `18900`. |
+| `NODE_ENV` | compose sets it | `production`. |
 
 ---
 
@@ -164,52 +157,23 @@ server {
 USD and CNY amounts are both on the invoice. CNY uses the rate locked at issue time, so the
 member is never surprised by a moving exchange rate.
 
-### Automatic checking — what is actually possible
+### Why there is no automatic bank hook
 
-There is **no public API** to read incoming payments from personal WeChat Pay, Alipay, Venmo,
-or Zelle accounts, and these services do not offer merchant webhooks for personal transfers.
-So “automatic” here means **matching**, not polling those providers:
+WeChat Pay, Alipay, Venmo and Zelle do not offer a webhook or API for **personal** transfers.
+The only ways to automate confirmation would be parsing provider emails (fragile, breaks with
+every template change, needs mailbox credentials) or scraping a personal banking session
+(against the terms, breaks under 2FA). For a six-person plan that is more moving parts than it
+saves.
 
-```
-provider/bank notification ──► email forward / Zapier / bank webhook
-        │
-        ▼
-POST /api/payments/ingest   (Bearer INGEST_TOKEN)
-        │  { reference, amount, currency, method, txRef }
-        ▼
-match invoice by reference ──► amount within tolerance? ──► paid automatically
-                                       │ no
-                                       ▼
-                              queued for admin review
-```
+So the flow is deliberately manual and takes one tap:
 
-Two supported paths:
+1. The member pays with the reference in the note.
+2. They tap **I have sent this payment** (amount, method, transaction id).
+3. The admin sees it under **Invoices → Payments to review** and approves or rejects it.
 
-1. **Ingest webhook** (reliable). Point any automation at the endpoint below. Amounts within
-   `toleranceUsd` (default $0.50) settle the invoice; anything else becomes a pending payment
-   for the admin to approve or reject. Transactions are unique by `txRef`, so retries are safe.
-2. **IMAP polling** (best-effort, off by default). Enable in Settings → Automation and give the
-   mailbox that receives payment notifications. Unread mail is scanned for an `A1-XXXXXXXX`
-   reference and a `$`/`¥` amount; matching mail is marked read. Provider email formats change,
-   so treat this as a convenience, not a contract.
-
-```bash
-curl -X POST https://plan.example.com/api/payments/ingest \
-  -H "Authorization: Bearer $INGEST_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "reference": "A1-7F3K2QW",
-    "amount": 45.00,
-    "currency": "USD",
-    "method": "venmo",
-    "txRef": "4281920384"
-  }'
-```
-
-Responses: `200 { status: paid | review | duplicate }`, `404` unknown reference,
-`401` bad token, `422` amount/reference problem.
-
----
+The pending report carries the claimed amount, so a short payment is visible before approval.
+If you ever do want automation, an external service can still POST to nothing today — there is
+no ingest endpoint in this build.
 
 ## Storage tracking (2 TB ÷ 6)
 
@@ -231,61 +195,14 @@ no plist/backup field, and no Shortcuts action for it. Scraping iCloud requires 
 password plus 2FA and conflicts with Apple's terms. The realistic automation is: **read the
 screen once, submit the numbers once.**
 
-Two endpoints do that, both Bearer `STORAGE_TOKEN`:
+Usage is entered in **Admin → Members** with the `Save GB` button on each member row. That is
+the whole workflow: open the Family Sharing storage screen once a month, type six numbers, done.
+The member dashboard, admin overview and member table update immediately, and over-quota emails
+go to the member and to you.
 
-### Batch observation (recommended)
-
-```bash
-curl -X POST https://plan.example.com/api/storage/observations \
-  -H "Authorization: Bearer $STORAGE_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "observationId": "6f0c2a3e-7d1b-4c55-9a51-2d6a1b0c9e77",
-    "observedAt": "2026-11-01T14:00:00Z",
-    "source": "ios-shortcut-confirmed",
-    "readings": [
-      { "email": "sam@example.com", "usedGb": 342.5 },
-      { "email": "alex@example.com", "usedGb": 188.0 }
-    ]
-  }'
-```
-
-- `observationId` is the idempotency key: replaying the same payload returns `200` with
-  `"duplicate": true`; reusing the id with different numbers returns `409`.
-- One request stores every member at the same `observedAt`, so a batch cannot half-apply.
-- Unknown members and out-of-range values are reported in `skipped` and do not block the rest.
-- Every accepted value is also written to `storage_readings` (who, when, source) for auditing.
-
-### Single value
-
-```bash
-curl -X POST https://plan.example.com/api/storage/update \
-  -H "Authorization: Bearer $STORAGE_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{ "email": "sam@example.com", "usedGb": 342.5 }'
-```
-
-Want to test the undocumented `setup/web/family/getFamilyDetails` and
-`setup/ws/1/storageUsageInfo` endpoints yourself? `contrib/icloud-probe` prints exactly what
-they return for your account. Source reading says: family identities + the organizer's
-aggregate usage, no per-member GB — the probe confirms or disproves it empirically. It is
-unsupported, keeps credentials local, and is not part of the image.
-
-The endpoint rejects values above the whole pool (a common bytes-vs-GB typo) and returns the
-quota and percentage.
-
-### iOS Shortcut (4–8 h build, low risk)
-
-1. Open **Settings → Family → Subscriptions → iCloud+** (or **Settings → [name] → iCloud →
-   Storage → Family Usage** where shown) and take a screenshot showing all members.
-2. Shortcut: **Extract Text from Image →** (optional) **Ask for Input** to correct the numbers
-   **→ Get Contents of URL**, method `POST`, JSON body matching the contract above, header
-   `Authorization: Bearer …`.
-3. Add it to the Share Sheet so the screenshot is the input, and have the Shortcut ask you to
-   confirm before submitting.
-
-Apple does not partition the pool, so this is a **fair-share guideline**: one member over quota
-does not block anyone, it just leaves less for the rest.
+There is no storage API and no Shortcut to maintain in this build. `contrib/icloud-probe` remains
+as a read-only experiment if you want to see what the private endpoints return — it does not post
+anything into the app.
 
 ## Install on iPhone (PWA)
 
@@ -342,24 +259,11 @@ is not configured, messages are recorded as `skipped` — nothing is silently lo
 
 ## Scheduler
 
-Reminders, overdue marking, FX refresh, storage checks and the digest are idempotent across
-runs and deduplicated per day/week. Trigger them with either:
+The daily job runs **inside the container** every 6 hours: it marks overdue invoices, refreshes
+the USD→CNY rate, sends reminders, the admin digest and storage alerts. Work is deduplicated, so
+running more often than daily is harmless and no external cron is needed.
 
-- **Admin → Overview → Run daily jobs**, or
-- external cron:
-
-```bash
-curl -X POST -H "Authorization: Bearer $CRON_SECRET" \
-  https://plan.example.com/api/cron/daily
-```
-
-```
-0 9 * * * curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://plan.example.com/api/cron/daily
-```
-
-- or set `INTERNAL_SCHEDULER=true` to run inside the container every 6 hours.
-
----
+You can also trigger it by hand from **Admin → Overview → Run daily jobs**.
 
 ## Data, backups, upgrades
 
@@ -391,8 +295,7 @@ anyway.
 - Member login: 16-character random codes, stored as peppered SHA-256; sessions are random
   256-bit tokens stored hashed, 30-day expiry.
 - Login and invite endpoints are rate-limited in-process (single container).
-- Server Actions validate and re-check the session; ingest/cron endpoints require bearer tokens
-  with constant-time comparison.
+- Server Actions validate and re-check the session.
 - All pages are `noindex`; `robots.txt` disallows everything.
 - SQLite runs as the unprivileged `nextjs` user; only `/data` is writable.
 - Rate limiting is per-process. If you scale to multiple replicas, move it to a shared store —
@@ -419,7 +322,7 @@ Requires Node ≥ 22.13 (uses the built-in `node:sqlite`, so there is no native 
 src/app                  pages + route handlers (App Router)
   admin/(protected)      admin console behind requireAdmin()
   dashboard              member area
-  api/{health,payments,cron,storage}
+  api/{health,ocr}
   actions                server actions (auth, member, admin)
 src/lib                  db, auth, billing, pricing, fx, email, reminders,
                          reconcile, storage, settings

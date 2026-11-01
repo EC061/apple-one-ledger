@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { parsePaymentText, type ParsedPayment } from "@/lib/payment-parse";
 import { Notice } from "./ui";
 
@@ -9,6 +9,7 @@ export default function PaymentAssist({ onFill }: { onFill: (parsed: ParsedPayme
   const [parsed, setParsed] = useState<ParsedPayment | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showPaste, setShowPaste] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   async function scan(file: File) {
     setBusy(true);
@@ -23,7 +24,6 @@ export default function PaymentAssist({ onFill }: { onFill: (parsed: ParsedPayme
         setError(detail?.error || `Could not read that screenshot (HTTP ${response.status}).`);
         return;
       }
-
       const data = (await response.json().catch(() => null)) as {
         ok?: boolean;
         error?: string;
@@ -38,6 +38,7 @@ export default function PaymentAssist({ onFill }: { onFill: (parsed: ParsedPayme
       setError("Upload failed. Check your connection and try again.");
     } finally {
       setBusy(false);
+      if (inputRef.current) inputRef.current.value = "";
     }
   }
 
@@ -48,32 +49,37 @@ export default function PaymentAssist({ onFill }: { onFill: (parsed: ParsedPayme
         <span className="muted small">optional</span>
       </div>
       <p className="hint" style={{ margin: "4px 0 10px" }}>
-        Pick the WeChat / Alipay / Venmo / Zelle receipt from your photos. The image is read on this
-        server and deleted immediately — it is never stored or attached to your payment.
+        Pick the WeChat / Alipay / Venmo / Zelle receipt from your photos. It is read on this server
+        and deleted immediately; the image is never stored, attached to your payment, or sent to a
+        third party.
       </p>
 
       <input
+        ref={inputRef}
         type="file"
         accept="image/png,image/jpeg,image/webp"
         className="input"
         aria-label="Payment screenshot"
+        disabled={busy}
         onChange={(event) => {
           const file = event.target.files?.[0];
           if (file) void scan(file);
         }}
       />
 
-      {busy ? (
-        <p className="hint" style={{ marginTop: 8 }}>
-          Reading the screenshot…
-        </p>
-      ) : null}
-      {error ? (
-        <div style={{ marginTop: 10 }}>
-          <Notice tone="warn">{error}</Notice>
-        </div>
-      ) : null}
-      {parsed ? <ScanSummary parsed={parsed} onUse={() => onFill(parsed)} /> : null}
+      <div role="status" aria-live="polite">
+        {busy ? (
+          <p className="hint" style={{ marginTop: 8 }}>
+            Reading the screenshot…
+          </p>
+        ) : null}
+        {error ? (
+          <div style={{ marginTop: 10 }}>
+            <Notice tone="warn">{error}</Notice>
+          </div>
+        ) : null}
+        {parsed ? <ScanSummary parsed={parsed} onUse={() => onFill(parsed)} /> : null}
+      </div>
 
       <button
         type="button"
@@ -100,13 +106,14 @@ function ScanSummary({ parsed, onUse }: { parsed: ParsedPayment; onUse: () => vo
               <strong>
                 {parsed.currency === "CNY" ? "¥" : parsed.currency === "USD" ? "$" : ""}
                 {parsed.amount.toFixed(2)}
-              </strong>
-              {parsed.currency ? ` ${parsed.currency}` : ""}
+              </strong>{" "}
+              {parsed.currency ?? <span className="muted">currency unknown — pick below</span>}
               {parsed.txRef ? ` · ref ${parsed.txRef}` : ""}
             </div>
           ) : (
             <div>No amount found — enter it manually.</div>
           )}
+          {parsed.paidAt ? <div className="muted">Paid {parsed.paidAt}</div> : null}
           {parsed.reference ? <div className="muted">Invoice {parsed.reference}</div> : null}
         </div>
         <button type="button" className="btn btn-secondary btn-sm" onClick={onUse}>

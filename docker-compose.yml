@@ -1,11 +1,11 @@
 services:
     app:
         container_name: apple-one-ledger
-        image: ghcr.io/ec061/apple-one-ledger:${TAG:-latest}
+        image: ghcr.io/ec061/apple-one-ledger:latest
         restart: always
         init: true
         ports:
-            - "${PORT:-3000}:3000"
+            - "18900:3000"
         environment:
             DATA_DIR: /data
             DATABASE_PATH: /data/applecare.db
@@ -13,15 +13,7 @@ services:
             NODE_ENV: production
             SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET (32+ random chars)}
             ADMIN_REG_CODE: ${ADMIN_REG_CODE:?set ADMIN_REG_CODE}
-            INGEST_TOKEN: ${INGEST_TOKEN:-}
-            STORAGE_TOKEN: ${STORAGE_TOKEN:-}
-            CRON_SECRET: ${CRON_SECRET:-}
             APP_URL: ${APP_URL:-}
-            APP_TIMEZONE: ${APP_TIMEZONE:-UTC}
-            INTERNAL_SCHEDULER: ${INTERNAL_SCHEDULER:-false}
-            TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
-            COOKIE_SECURE: ${COOKIE_SECURE:-}
-            FX_FALLBACK_RATE: ${FX_FALLBACK_RATE:-7.2}
         volumes:
             - ./data:/data
         security_opt:

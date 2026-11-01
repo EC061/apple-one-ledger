@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { createInvoice, openInvoiceFor, submitInvoice, BillingError } from "@/lib/billing";
 import { getCurrentRate } from "@/lib/fx";
 import { isPlan } from "@/lib/pricing";
-import { isPaymentMethod } from "@/lib/reconcile";
+import { isPaymentMethod } from "@/lib/labels";
 import { db, nowIso, event } from "@/lib/db";
 import type { Invoice } from "@/lib/types";
 
@@ -64,11 +64,16 @@ export async function submitPaymentAction(formData: FormData) {
   if (!invoice || (invoice.user_id !== user.id && user.role !== "admin")) redirect("/dashboard");
   if (!isPaymentMethod(method)) redirect(`/dashboard/pay/${invoiceId}?error=method`);
 
-  // No-JS fallback: the amount field is seeded in USD. If the member switched
-  // the currency radio without JS, the value still equals the USD amount, so
-  // swap in the locked CNY figure instead of recording $45 as ¥45.
-  if (currency === "CNY" && value === invoice.amount_usd) value = invoice.amount_cny;
-  if (currency === "USD" && value === invoice.amount_cny) value = invoice.amount_usd;
+  // No-JS fallback: the amount field is seeded in USD. Only swap when the
+  // value is still the untouched default — never when OCR or the member typed
+  // an amount that happens to equal the other currency's default.
+  const source = text(formData, "amountSource") || "default";
+  if (source === "default" && currency === "CNY" && value === invoice.amount_usd) {
+    value = invoice.amount_cny;
+  }
+  if (source === "default" && currency === "USD" && value === invoice.amount_cny) {
+    value = invoice.amount_usd;
+  }
 
   if (!Number.isFinite(value) || value <= 0) redirect(`/dashboard/pay/${invoiceId}?error=amount`);
 

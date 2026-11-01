@@ -11,15 +11,33 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const run = promisify(execFile);
-const MAX_BYTES = 8 * 1024 * 1024;
+const MAX_BYTES = 4 * 1024 * 1024;
+const MAX_CONCURRENT = 2;
 const ALLOWED = new Set(["image/png", "image/jpeg", "image/webp"]);
+
+let active = 0;
+let cachedLangs: string[] | null = null;
+
+async function languages(): Promise<string> {
+  if (cachedLangs) return cachedLangs.includes("chi_sim") ? "eng+chi_sim" : "eng";
+  try {
+    const { stdout } = await run("tesseract", ["--list-langs"], { timeout: 5000 });
+    cachedLangs = String(stdout)
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith("List"));
+  } catch {
+    cachedLangs = ["eng"];
+  }
+  return cachedLangs.includes("chi_sim") ? "eng+chi_sim" : "eng";
+}
 
 /**
  * POST /api/ocr  (multipart form-data, field "image")
  *
- * Reads a WeChat / Alipay / Venmo / Zelle receipt screenshot with the system
- * tesseract binary and returns the raw text plus best-effort amount and
- * transaction id. The image is written to a temp file, read, and deleted.
+ * Reads a WeChat / Alipay / Venmo / Zelle receipt screenshot with tesseract and
+ * returns the parsed amount/transaction id. The image is written to a temp
+ * file, read, and deleted; OCR text is not echoed back or stored.
  */
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -27,6 +45,14 @@ export async function POST(request: Request) {
 
   if (!rateLimit(`ocr:${user.id}`, 12, 60_000)) {
     return json({ ok: false, error: "Too many scans. Wait a minute and try again." }, 429);
+  }
+
+  const length = Number(request.headers.get("content-length") || 0);
+  if (length && length > MAX_BYTES + 128 * 1024) {
+    return json({ ok: false, error: "That upload is too large (max 4 MB)." }, 413);
+  }
+  if (active >= MAX_CONCURRENT) {
+    return json({ ok: false, error: "Another scan is running. Try again in a moment." }, 429);
   }
 
   let form: FormData;
@@ -39,7 +65,7 @@ export async function POST(request: Request) {
   const file = form.get("image");
   if (!(file instanceof File)) return json({ ok: false, error: "No image uploaded." }, 400);
   if (file.size === 0 || file.size > MAX_BYTES) {
-    return json({ ok: false, error: "Image must be between 1 byte and 8 MB." }, 413);
+    return json({ ok: false, error: "Image must be between 1 byte and 4 MB." }, 413);
   }
   if (!ALLOWED.has(file.type)) {
     return json(
@@ -53,20 +79,22 @@ export async function POST(request: Request) {
 
   const dir = await mkdtemp(path.join(tmpdir(), "a1-ocr-"));
   const filePath = path.join(dir, "receipt");
+  active += 1;
 
   try {
     await writeFile(filePath, Buffer.from(await file.arrayBuffer()));
-    const { stdout } = await run("tesseract", [filePath, "stdout", "-l", "eng", "--psm", "6"], {
+    const lang = await languages();
+    const { stdout } = await run("tesseract", [filePath, "stdout", "-l", lang, "--psm", "6"], {
       timeout: 20_000,
-      maxBuffer: 4 * 1024 * 1024,
+      maxBuffer: 2 * 1024 * 1024,
     });
 
-    const text = String(stdout || "").trim();
-    if (!text) {
-      return json({ ok: false, error: "No text found in that image. Try a tighter crop." }, 422);
+    const parsed = parsePaymentText(String(stdout || "").trim());
+    if (!parsed.amount && !parsed.txRef && !parsed.reference) {
+      return json({ ok: false, error: "No amount or transaction number found. Try a tighter crop." }, 422);
     }
 
-    return json({ ok: true, text: text.slice(0, 4000), parsed: parsePaymentText(text) });
+    return json({ ok: true, parsed });
   } catch (error) {
     const missing = (error as NodeJS.ErrnoException).code === "ENOENT";
     console.error("[ocr] failed", error);
@@ -80,6 +108,7 @@ export async function POST(request: Request) {
       missing ? 501 : 500,
     );
   } finally {
+    active -= 1;
     await rm(dir, { recursive: true, force: true }).catch(() => undefined);
   }
 }

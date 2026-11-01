@@ -3,7 +3,7 @@
 ## Core
 - [x] Next.js 15 + TypeScript + standalone output
 - [x] SQLite via `node:sqlite`, WAL + `synchronous=FULL`, nested-safe transactions, additive migrations
-- [x] Schema: users, sessions, invites, invoices, payments, settings, fx_rates, emails, events, storage_readings, storage_observations
+- [x] Schema: users, sessions, invites, invoices, payments, settings, fx_rates, emails, events, storage_readings
 - [x] Pricing: first term 45 / 90 / 180; renewals 51 / 96 / 180; 89.94 ÷ 6 = 14.99, all editable
 - [x] Invoice lifecycle with status-predicate updates and partial-payment control
 - [x] FX service: daily USD→CNY, manual override, per-invoice rate snapshot; refuses fabricated fallback rates
@@ -18,18 +18,18 @@
 ## Payments & mail
 - [x] WeChat / Alipay / Venmo / Zelle details + QR; only configured methods offered
 - [x] USD + CNY, locked rate, 8-char reference codes
-- [x] Duplicate-safe ingest, tolerance, review queue, partial-payment guard
+- [x] Member payment reports, admin approve/reject, partial-payment guard
 - [x] `confirmExistingPayment` avoids double-recording an approved transfer
 - [x] SMTP config + test, all message types, per-day/per-week dedupe on success only
 - [x] Daily jobs: overdue (awaiting only, not submitted), FX, reminders, digest, storage
-- [x] External cron + optional in-process scheduler (global lock)
+- [x] In-process scheduler every 6 h (no external cron)
 
 ## Storage
 - [x] Fair share = total ÷ shareCount (independent of billing seats)
-- [x] Batch observation API with `observationId` idempotency + 409 conflicts
-- [x] Single-value API retained; per-reading audit trail
+- [x] Manual storage entry with per-member audit and over-quota alerts
+- [x] Staleness handling and member/admin alerts
 - [x] Staleness suppression, never-report ≠ zero, over-quota alerts to member + admin
-- [x] iOS Shortcut / OCR workflow documented
+- [x] No automation endpoints or Shortcut to maintain
 
 ## UI
 - [x] Landing with first-term vs renewal disclosure

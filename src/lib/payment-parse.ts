@@ -53,7 +53,6 @@ export function parsePaymentText(input: string): ParsedPayment {
   }
   if (!amount && labeled) {
     amount = toNumber(labeled[1]);
-    currency = amount ? null : null;
   }
   if (!amount && cny === null && usd === null) {
     // Last resort: a decimal number with two places, e.g. "45.00".
@@ -73,15 +72,23 @@ export function parsePaymentText(input: string): ParsedPayment {
   if (!txRef) {
     // Longest digit run is usually the provider's transaction number; ignore
     // runs that are part of a date or the ledger's own reference.
-    const runs = (text.match(/\b\d{10,32}\b/g) || []).filter((run) => !/^(19|20)\d{6,}$/.test(run));
+    const runs = (text.match(/\b\d{10,32}\b/g) || []).filter(
+      (run) => !(run.length === 8 && /^(19|20)\d{6}$/.test(run)) && run.length !== 14,
+    );
     if (runs.length) txRef = runs.sort((a, b) => b.length - a.length)[0];
   }
 
   const referenceMatch = text.match(REFERENCE);
   const dateMatch = text.match(DATE);
-  const paidAt = dateMatch
+  const candidate = dateMatch
     ? `${dateMatch[1]}-${String(dateMatch[2]).padStart(2, "0")}-${String(dateMatch[3]).padStart(2, "0")}`
     : null;
+  const candidateDate = candidate ? new Date(`${candidate}T00:00:00Z`) : null;
+  const paidAt =
+    candidate && candidateDate && !Number.isNaN(candidateDate.getTime()) &&
+    candidateDate.toISOString().slice(0, 10) === candidate
+      ? candidate
+      : null;
 
   const confidence: ParsedPayment["confidence"] =
     amount && (txRef || referenceMatch) ? "high" : amount ? "medium" : "low";
@@ -91,7 +98,7 @@ export function parsePaymentText(input: string): ParsedPayment {
     currency,
     txRef,
     reference: referenceMatch ? referenceMatch[0].toUpperCase() : null,
-    paidAt: paidAt && !Number.isNaN(new Date(paidAt).getTime()) ? paidAt : null,
+    paidAt,
     confidence,
   };
 }

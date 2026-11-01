@@ -80,13 +80,17 @@ export default async function PayPage({
 
           <div className="split pay-split">
             <div className="stack pay-main">
-              <PayAmountCard invoice={invoice} settings={settings} />
+              <div className="pay-amount">
+                <PayAmountCard invoice={invoice} settings={settings} />
+              </div>
 
-              <PayActionPanel
-                invoice={invoice}
-                isAdminView={isAdminView}
-                configuredMethods={configuredMethods}
-              />
+              <div className="pay-action">
+                <PayActionPanel
+                  invoice={invoice}
+                  isAdminView={isAdminView}
+                  configuredMethods={configuredMethods}
+                />
+              </div>
             </div>
 
             <PayDestinations settings={settings} invoice={invoice} methodRows={methodRows} />

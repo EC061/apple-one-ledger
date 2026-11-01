@@ -107,7 +107,7 @@ hr {
   width: 100%;
   max-width: 1080px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 max(20px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left));
 }
 
 .container-narrow {
@@ -847,8 +847,19 @@ table.data tr:hover td {
     display: flex;
     flex-direction: column;
   }
+  /* Let the main column's children participate in the page order so the
+     member sees the amount, then where to send it, then the confirm form. */
+  .pay-split .pay-main {
+    display: contents;
+  }
+  .pay-split .pay-amount {
+    order: 1;
+  }
   .pay-split .pay-destinations {
-    order: -1;
+    order: 2;
+  }
+  .pay-split .pay-action {
+    order: 3;
   }
 }
 
@@ -1002,4 +1013,16 @@ details[open] > summary {
   .topbar {
     padding-top: env(safe-area-inset-top);
   }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
