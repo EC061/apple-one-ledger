@@ -41,7 +41,12 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+
+      # Docker references must be lowercase; GitHub logins are not.
+      - name: Compute lowercase image name
+        id: image
+        run: echo "name=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -60,7 +65,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
@@ -79,8 +84,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           # GHCR registry cache survives runner resets and is shared between
           # the amd64 and arm64 builds (mode=max also caches intermediate stages).
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max,image-manifest=true,oci-mediatypes=true
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:buildcache,mode=max,image-manifest=true,oci-mediatypes=true
           provenance: true
           sbom: true
 
