@@ -559,3 +559,47 @@ export async function sendRenewalAdminEmail(input: {
     dedupeKey: `renewal-admin:${day}`,
   });
 }
+
+export async function sendInvoiceCreatedEmail(input: {
+  user: User;
+  invoice: Invoice;
+  baseUrl: string;
+}) {
+  const { user, invoice, baseUrl } = input;
+  const subject = `New invoice: ${formatMoney(invoice.amount_usd)} due ${formatDate(invoice.due_date)}`;
+  const url = `${baseUrl}/dashboard/pay/${invoice.id}`;
+  const text = [
+    `Hi ${user.name},`,
+    "",
+    `A new invoice is ready for the term ${formatDate(invoice.period_start)} – ${formatDate(invoice.period_end)}.`,
+    `Amount: ${formatMoney(invoice.amount_usd)} (¥${invoice.amount_cny.toFixed(2)})`,
+    `Due: ${formatDate(invoice.due_date)}`,
+    `Reference: ${invoice.reference}`,
+    "",
+    url,
+  ].join("\n");
+
+  const html = layout(
+    "New invoice",
+    p(`Hi ${esc(user.name)},`) +
+      p("A new invoice is ready. Pay it in USD or CNY and include the reference in the note.") +
+      details([
+        ["Amount", formatMoney(invoice.amount_usd)],
+        ["In CNY", `¥${invoice.amount_cny.toFixed(2)}`],
+        ["Term", `${formatDate(invoice.period_start)} – ${formatDate(invoice.period_end)}`],
+        ["Due", formatDate(invoice.due_date)],
+        ["Reference", invoice.reference],
+      ]) +
+      button(url, "View and pay"),
+    "You receive this because you hold a seat on the family plan.",
+  );
+
+  return sendMail({
+    to: user.email,
+    subject,
+    text,
+    html,
+    kind: "invoice-created",
+    dedupeKey: `invoice-created:${invoice.id}`,
+  });
+}
