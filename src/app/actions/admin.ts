@@ -130,6 +130,10 @@ export async function saveSettingsAction(formData: FormData) {
   }
 
   if (intent === "smtp") {
+    const fromEmail = text(formData, "fromEmail").toLowerCase();
+    if (fromEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(fromEmail)) {
+      redirect("/admin/settings?error=from-email");
+    }
     saveSection("smtp", {
       enabled: flag(formData, "enabled"),
       host: text(formData, "host"),
@@ -137,7 +141,8 @@ export async function saveSettingsAction(formData: FormData) {
       secure: flag(formData, "secure"),
       user: text(formData, "user"),
       pass: text(formData, "pass") || current.smtp.pass,
-      from: text(formData, "from"),
+      fromName: text(formData, "fromName"),
+      fromEmail,
     });
   }
 

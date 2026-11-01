@@ -33,7 +33,8 @@ export interface SmtpSettings {
   secure: boolean;
   user: string;
   pass: string;
-  from: string;
+  fromName: string;
+  fromEmail: string;
 }
 
 export interface FxSettings {
@@ -122,7 +123,8 @@ export const DEFAULT_SETTINGS: Settings = {
     secure: false,
     user: "",
     pass: "",
-    from: "",
+    fromName: "",
+    fromEmail: "",
   },
   fx: {
     provider: "frankfurter",

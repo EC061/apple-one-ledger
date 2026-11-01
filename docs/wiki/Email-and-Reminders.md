@@ -2,8 +2,8 @@
 
 ## SMTP
 
-Configure under **Admin → Settings → Email**: host, port, implicit TLS, username, password, from
-address. **Test SMTP** sends a message to the admin address. If SMTP is disabled, messages are
+Configure under **Admin → Settings → Email**: host, port, implicit TLS, username, password, and a
+separate **From name** and **From email** (e.g. `Family Plan` + `plan@example.com`). **Test SMTP** sends a message to the admin address. If SMTP is disabled, messages are
 recorded in the email log with status `skipped` — nothing is silently lost.
 
 ## Templates

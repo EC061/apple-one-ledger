@@ -17,9 +17,17 @@ let cachedTransport: { key: string; transport: Transporter } | null = null;
 
 function transport(): Transporter | null {
   const { smtp } = getSettings();
-  if (!smtp.enabled || !smtp.host || !smtp.from) return null;
+  if (!smtp.enabled || !smtp.host || !smtp.fromEmail) return null;
 
-  const key = JSON.stringify([smtp.host, smtp.port, smtp.secure, smtp.user, smtp.pass, smtp.from]);
+  const key = JSON.stringify([
+    smtp.host,
+    smtp.port,
+    smtp.secure,
+    smtp.user,
+    smtp.pass,
+    smtp.fromName,
+    smtp.fromEmail,
+  ]);
   if (cachedTransport?.key === key) return cachedTransport.transport;
 
   const instance = nodemailer.createTransport({
@@ -37,7 +45,7 @@ function transport(): Transporter | null {
 
 export function smtpConfigured(): boolean {
   const { smtp } = getSettings();
-  return Boolean(smtp.enabled && smtp.host && smtp.from);
+  return Boolean(smtp.enabled && smtp.host && smtp.fromEmail);
 }
 
 export async function verifySmtp(): Promise<{ ok: boolean; error?: string }> {
@@ -95,7 +103,7 @@ export async function sendMail(input: {
   try {
     const { smtp } = getSettings();
     await t.sendMail({
-      from: smtp.from,
+      from: smtp.fromName.trim() ? `${smtp.fromName.trim()} <${smtp.fromEmail}>` : smtp.fromEmail,
       to: input.to,
       subject: input.subject.replace(/[\r\n]+/g, " "),
       text: input.text,
