@@ -30,9 +30,9 @@ const ERRORS: Record<string, string> = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; code?: string }>;
+  searchParams: Promise<{ error?: string; code?: string; signup?: string }>;
 }) {
-  const { error, code } = await searchParams;
+  const { error, code, signup } = await searchParams;
   const adminReady = adminCodeConfigured();
 
   return (
@@ -46,10 +46,11 @@ export default async function LoginPage({
           </div>
         </div>
 
-        <h1 style={{ fontSize: 22 }}>Continue with your code</h1>
+        <h1 style={{ fontSize: 22 }}>{signup ? "Create your account" : "Continue with your code"}</h1>
         <p className="muted small">
-          The same field works for members, new invites and the admin. What happens next depends on
-          the code you enter.
+          {signup
+            ? "Sign-up needs a one-time invite code from the admin, plus your name and email."
+            : "The same field works for members, new invites and the admin. What happens next depends on the code you enter."}
         </p>
 
         {error ? (
