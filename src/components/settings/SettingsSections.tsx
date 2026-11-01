@@ -69,7 +69,7 @@ export async function PlanPricingCard() {
               </div>
               <div className="field">
                 <label className="label" htmlFor="dueSoonDays">
-                  &quot;Due soon&quot; window (days)
+                  Payment due after (days)
                 </label>
                 <input id="dueSoonDays" name="dueSoonDays" type="number" min={1} max={60} className="input" defaultValue={plan.dueSoonDays} />
               </div>

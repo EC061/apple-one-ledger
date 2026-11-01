@@ -54,6 +54,7 @@ export function createInvoice(input: CreateInvoiceInput): Invoice {
     const startBase = user.paid_through && user.paid_through >= current ? addDays(user.paid_through, 1) : current;
     const periodStart = startBase;
     const periodEnd = addDays(addMonths(periodStart, months), -1);
+  const dueDate = addDays(current, Math.max(settings.plan.dueSoonDays, 1));
 
     let reference = newReference();
     for (let i = 0; i < 5; i++) {
@@ -69,7 +70,7 @@ export function createInvoice(input: CreateInvoiceInput): Invoice {
       term_index: termIndex,
       period_start: periodStart,
       period_end: periodEnd,
-      due_date: current,
+      due_date: dueDate,
       amount_usd: amountUsd,
       fx_rate: rate,
       fx_date: input.fxDate,

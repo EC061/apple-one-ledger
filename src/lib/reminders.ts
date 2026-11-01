@@ -60,6 +60,7 @@ export async function sendDueReminders(day: string): Promise<number> {
     if (invoice.user_status !== "active") continue;
     // Already reported by the member: wait for the admin, do not dun them.
     if (invoice.status === "submitted") continue;
+    if (invoice.created_at.slice(0, 10) === day) continue; // invoice email already sent
     const daysLeft = daysBetween(day, invoice.due_date);
     const user = asUser(invoice);
 
