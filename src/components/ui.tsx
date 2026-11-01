@@ -1,4 +1,5 @@
 import type { InvoiceStatus, MemberStatus, PaymentMethod } from "@/lib/types";
+import { METHOD_LABELS } from "@/lib/labels";
 
 const INVOICE_LABELS: Record<InvoiceStatus, string> = {
   awaiting_payment: "Awaiting payment",
@@ -27,13 +28,6 @@ export function MemberBadge({ status }: { status: MemberStatus }) {
     </span>
   );
 }
-
-export const METHOD_LABELS: Record<PaymentMethod, string> = {
-  wechat: "WeChat Pay",
-  alipay: "Alipay",
-  venmo: "Venmo",
-  zelle: "Zelle",
-};
 
 export function MethodBadge({ method }: { method: PaymentMethod | null }) {
   if (!method) return <span className="muted">—</span>;

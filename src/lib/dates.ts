@@ -44,38 +44,58 @@ export function daysBetween(from: string, to: string): number {
   return Math.round((parseDate(to).getTime() - parseDate(from).getTime()) / MS_DAY);
 }
 
+const DATE_FORMAT = new Intl.DateTimeFormat("en-US", {
+  timeZone: "UTC",
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+});
+
 export function formatDate(value: string | null | undefined, timezone = "UTC"): string {
   void timezone;
   if (!value) return "—";
-  const date = parseDate(value);
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: "UTC",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(date);
+  return DATE_FORMAT.format(parseDate(value));
 }
 
-export function formatDateTime(value: string | null | undefined, timezone = "UTC"): string {
-  if (!value) return "—";
-  const date = new Date(value);
-  return new Intl.DateTimeFormat("en-US", {
+const DATE_TIME_FORMATS = new Map<string, Intl.DateTimeFormat>();
+
+function dateTimeFormat(timezone: string): Intl.DateTimeFormat {
+  const cached = DATE_TIME_FORMATS.get(timezone);
+  if (cached) return cached;
+  const formatter = new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,
     year: "numeric",
     month: "short",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(date);
+  });
+  DATE_TIME_FORMATS.set(timezone, formatter);
+  return formatter;
 }
 
-export function formatMoney(amount: number, currency: "USD" | "CNY" = "USD"): string {
-  return new Intl.NumberFormat("en-US", {
+const MONEY_FORMATS = new Map<string, Intl.NumberFormat>();
+
+function moneyFormat(currency: "USD" | "CNY"): Intl.NumberFormat {
+  const cached = MONEY_FORMATS.get(currency);
+  if (cached) return cached;
+  const formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(amount);
+  });
+  MONEY_FORMATS.set(currency, formatter);
+  return formatter;
+}
+
+export function formatDateTime(value: string | null | undefined, timezone = "UTC"): string {
+  if (!value) return "—";
+  return dateTimeFormat(timezone).format(new Date(value));
+}
+
+export function formatMoney(amount: number, currency: "USD" | "CNY" = "USD"): string {
+  return moneyFormat(currency).format(amount);
 }
 
 export function relativeDays(date: string, timezone = "UTC"): string {

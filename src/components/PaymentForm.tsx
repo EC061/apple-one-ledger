@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { submitPaymentAction } from "@/app/actions/member";
 import SubmitButton from "./SubmitButton";
+import PaymentAssist from "./PaymentAssist";
+import type { ParsedPayment } from "@/lib/payment-parse";
 
 export default function PaymentForm({
   invoiceId,
@@ -20,20 +22,31 @@ export default function PaymentForm({
   methods: { value: string; label: string }[];
 }) {
   const [currency, setCurrency] = useState<"USD" | "CNY">("USD");
-  const [value, setValue] = useState(amountUsd.toFixed(2));
+  const [value, setValue] = useState(() => amountUsd.toFixed(2));
   const first = methods[0]?.value ?? "";
-  const [selected, setSelected] = useState(
+  const [selected, setSelected] = useState(() =>
     method && methods.some((entry) => entry.value === method) ? method : first,
   );
+  const [txRef, setTxRef] = useState("");
 
   function changeCurrency(next: "USD" | "CNY") {
     setCurrency(next);
     setValue((next === "USD" ? amountUsd : amountCny).toFixed(2));
   }
 
+  function applyParsed(parsed: ParsedPayment) {
+    if (parsed.amount) {
+      setCurrency(parsed.currency ?? currency);
+      setValue(parsed.amount.toFixed(2));
+    }
+    if (parsed.txRef) setTxRef(parsed.txRef);
+  }
+
   return (
     <form action={submitPaymentAction} className="stack-sm">
       <input type="hidden" name="invoiceId" value={invoiceId} />
+
+      <PaymentAssist onFill={applyParsed} />
 
       <div className="field">
         <span className="label">Currency you sent</span>
@@ -105,7 +118,14 @@ export default function PaymentForm({
           <label className="label" htmlFor="txRef">
             Transaction reference (optional)
           </label>
-          <input id="txRef" name="txRef" className="input" placeholder="e.g. 4FJ92KQ1" />
+          <input
+            id="txRef"
+            name="txRef"
+            className="input"
+            placeholder="e.g. 4FJ92KQ1"
+            value={txRef}
+            onChange={(event) => setTxRef(event.target.value)}
+          />
           <span className="hint">Helps the admin match your payment if the note was missing.</span>
         </div>
 

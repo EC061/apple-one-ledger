@@ -26,10 +26,11 @@ export async function createInvoiceAction(formData: FormData) {
 
   if (openInvoiceFor(user.id)) redirect("/dashboard?error=open");
 
+  const rate = await getCurrentRate().catch(() => null);
+  if (!rate || rate.source === "fallback") redirect("/dashboard?error=fx");
+
   let invoiceId: string;
   try {
-    const rate = await getCurrentRate();
-    if (rate.source === "fallback") redirect("/dashboard?error=fx");
     const invoice = createInvoice({
       userId: user.id,
       plan,

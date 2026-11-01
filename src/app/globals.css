@@ -965,3 +965,41 @@ details summary::-webkit-details-marker {
 details[open] > summary {
   margin-bottom: 2px;
 }
+
+/* ---------------------------------------------------------------- */
+/* Payment assist + PWA                                             */
+/* ---------------------------------------------------------------- */
+
+.assist {
+  border: 1px dashed var(--line-strong);
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+.assist .input[type="file"] {
+  padding: 8px;
+  font-size: 13px;
+  background: #fff;
+}
+.assist .input[type="file"]::file-selector-button {
+  margin-right: 10px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 6px 10px;
+  border-radius: 7px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.page {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@media (display-mode: standalone) {
+  .topbar {
+    padding-top: env(safe-area-inset-top);
+  }
+}

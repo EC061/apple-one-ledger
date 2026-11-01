@@ -127,19 +127,21 @@ export async function checkStorage(day = today(getSettings().plan.timezone)): Pr
   let sent = 0;
 
   if (settings.storage.notifyMember) {
-    for (const row of over) {
-      if (row.user.role === "admin") continue; // the summary below covers the admin
-      const result = await sendStorageAlertEmail({
-        user: row.user,
-        quotaGb: row.status.quotaGb,
-        usedGb: row.status.usedGb,
-        totalGb: settings.storage.totalGb,
-        baseUrl,
-        audience: "member",
-        dedupeKey: `storage-member:${row.user.id}:${isoWeekKey(day)}`,
-      });
-      if (result.status === "sent") sent += 1;
-    }
+    const recipients = over.filter((row) => row.user.role !== "admin");
+    const results = await Promise.all(
+      recipients.map((row) =>
+        sendStorageAlertEmail({
+          user: row.user,
+          quotaGb: row.status.quotaGb,
+          usedGb: row.status.usedGb,
+          totalGb: settings.storage.totalGb,
+          baseUrl,
+          audience: "member",
+          dedupeKey: `storage-member:${row.user.id}:${isoWeekKey(day)}`,
+        }),
+      ),
+    );
+    sent += results.filter((result) => result.status === "sent").length;
   }
 
   if (settings.storage.notifyAdmin && admin) {

@@ -53,6 +53,9 @@
 - [x] Backend review by gpt-6.1-sol (T3 Code) — blocking findings fixed
 - [x] Frontend review by claude-opus-5-5 (T3 Code) — blocking findings fixed
 - [x] iCloud private-endpoint probe added under contrib/ (unsupported)
+- [x] PWA: manifest, maskable icons, iOS meta, static-only service worker, install hint
+- [x] Payment screenshot OCR + iOS Live Text paste assist with manual confirmation
+- [x] React Doctor installed (dev dep, `npm run doctor`, CI workflow, pre-commit hook) — score 100/100
 
 ## Known limits (by design)
 - Apple has no public family-storage API; usage is reported (manual or Shortcut/OCR).

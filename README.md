@@ -282,6 +282,43 @@ quota and percentage.
 Apple does not partition the pool, so this is a **fair-share guideline**: one member over quota
 does not block anyone, it just leaves less for the rest.
 
+## Install on iPhone (PWA)
+
+The app ships a web manifest, maskable icons and a conservative service worker (it caches only
+`/_next/static/*` and icons — never HTML, API responses or payment data).
+
+1. Open the site in **Safari** on the iPhone.
+2. Tap **Share → Add to Home Screen**.
+3. It installs as **A1 Ledger**, opens full-screen without browser chrome, and keeps the 30-day
+   session cookie.
+
+A dismissible hint appears on the dashboard for iOS Safari users who have not installed it yet.
+`apple-mobile-web-app-*` metadata and the 180 px touch icon are set server-side, so the home
+screen icon and title are correct without any extra configuration.
+
+## Payment screenshot assist (OCR)
+
+On the payment page the member can either:
+
+- **upload a WeChat / Alipay / Venmo / Zelle receipt screenshot** — the server runs `tesseract`
+  (installed in the image), extracts the amount and transaction number, and shows them for
+  confirmation before filling the form; or
+- **paste the text** using iOS Live Text (long-press the screenshot → Copy Text) — parsed with the
+  same logic, entirely in the browser.
+
+The image is written to a temporary file, read once, and deleted. It is never stored, attached to
+a payment, or sent anywhere else. The member always confirms the values before submitting, and
+manual entry works unchanged.
+
+Local development needs tesseract:
+
+```bash
+sudo apt install tesseract-ocr tesseract-ocr-eng   # Debian/Ubuntu
+brew install tesseract                             # macOS
+```
+
+Without it, `/api/ocr` returns `501` with a clear message and the manual form still works.
+
 ## Email
 
 Configure SMTP in **Admin → Settings → Email** (host, port, implicit TLS, user, password, from)
@@ -362,6 +399,7 @@ anyway.
 
 ```bash
 npm install
+npm run doctor        # React Doctor: 100/100, runs on every commit via .git/hooks
 cp .env.example .env        # set SESSION_SECRET + ADMIN_REG_CODE
 npm run dev                 # http://localhost:3000
 npm run typecheck

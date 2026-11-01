@@ -426,12 +426,11 @@ export async function adminCreateInvoiceAction(formData: FormData) {
   if (!isPlan(plan)) redirect("/admin/invoices?error=plan");
   if (openInvoiceFor(userId)) redirect("/admin/invoices?error=open");
 
+  const rate = await getCurrentRate().catch(() => null);
+  if (!rate || rate.source === "fallback") redirect("/admin/invoices?error=fx");
+
   let id: string;
   try {
-    const rate = await getCurrentRate();
-    if (rate.source === "fallback") {
-      redirect("/admin/invoices?error=fx");
-    }
     id = createInvoice({ userId, plan, fxRate: rate.rate, fxDate: rate.date, actor: null }).id;
   } catch (error) {
     const message = error instanceof BillingError ? error.message : "Could not create invoice.";

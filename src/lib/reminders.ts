@@ -47,7 +47,8 @@ function asUser(row: InvoiceWithUser): User {
 export async function sendDueReminders(day: string): Promise<number> {
   const settings = getSettings();
   const baseUrl = await getBaseUrl();
-  let sent = 0;
+  const reminderDays = new Set(settings.reminders.daysBefore);
+  const jobs: Array<() => Promise<{ status: string }>> = [];
 
   for (const invoice of openInvoices()) {
     if (invoice.user_status !== "active") continue;
@@ -57,29 +58,27 @@ export async function sendDueReminders(day: string): Promise<number> {
     const user = asUser(invoice);
 
     if (daysLeft < -settings.plan.graceDays) {
-      // Past the grace period: weekly nudge that the seat will be removed.
+      // Past the grace period: periodic nudge that the seat will be removed.
       if (Math.abs(daysLeft) % Math.max(settings.reminders.removalWarningDays, 1) === 0) {
-        const result = await sendRemovalWarningEmail({ user, invoice, baseUrl });
-        if (result.status === "sent") sent += 1;
+        jobs.push(() => sendRemovalWarningEmail({ user, invoice, baseUrl }));
       }
       continue;
     }
 
     if (daysLeft < 0) {
       if (Math.abs(daysLeft) % Math.max(settings.reminders.overdueEveryDays, 1) === 0) {
-        const result = await sendReminderEmail({ user, invoice, baseUrl, kind: "overdue" });
-        if (result.status === "sent") sent += 1;
+        jobs.push(() => sendReminderEmail({ user, invoice, baseUrl, kind: "overdue" }));
       }
       continue;
     }
 
-    if (settings.reminders.daysBefore.includes(daysLeft)) {
-      const result = await sendReminderEmail({ user, invoice, baseUrl, kind: "reminder" });
-      if (result.status === "sent") sent += 1;
+    if (reminderDays.has(daysLeft)) {
+      jobs.push(() => sendReminderEmail({ user, invoice, baseUrl, kind: "reminder" }));
     }
   }
 
-  return sent;
+  const results = await Promise.all(jobs.map((job) => job()));
+  return results.filter((result) => result.status === "sent").length;
 }
 
 export async function sendAdminDigest(day: string): Promise<boolean> {

@@ -189,8 +189,10 @@ export async function pollImap(): Promise<{ scanned: number; matched: number }> 
     return { scanned: 0, matched: 0 };
   }
 
-  const { ImapFlow } = await import("imapflow");
-  const { simpleParser } = await import("mailparser");
+  const [{ ImapFlow }, { simpleParser }] = await Promise.all([
+    import("imapflow"),
+    import("mailparser"),
+  ]);
 
   const allowedSenders = (imap.allowedSenders || "")
     .split(/[,\n]/)
@@ -219,14 +221,25 @@ export async function pollImap(): Promise<{ scanned: number; matched: number }> 
     const uids = await client.search({ since, seen: false }, { uid: true });
     const list = Array.isArray(uids) ? uids.slice(-25) : [];
 
-    for (const uid of list) {
+    // IMAP commands on one connection must stay ordered, so this is a
+    // recursive walk rather than a loop (and never parallel fetches).
+    const processAt = async (index: number): Promise<void> => {
+      if (index >= list.length) return;
+      const uid = list[index];
+
       const message = await client.fetchOne(String(uid), { source: true }, { uid: true });
-      if (!message || !message.source) continue;
+      if (!message || !message.source) {
+        await processAt(index + 1);
+        return;
+      }
       scanned += 1;
 
       const parsed = await simpleParser(message.source);
       const from = (parsed.from?.text || "").toLowerCase();
-      if (!allowedSenders.some((sender: string) => from.includes(sender))) continue;
+      if (!allowedSenders.some((sender: string) => from.includes(sender))) {
+        await processAt(index + 1);
+        return;
+      }
 
       const text = `${parsed.subject || ""}\n${parsed.text || ""}`;
       const references = new Set(
@@ -249,7 +262,11 @@ export async function pollImap(): Promise<{ scanned: number; matched: number }> 
         if (result.status === "paid") matched += 1;
         await client.messageFlagsAdd(String(uid), ["\\Seen"], { uid: true });
       }
-    }
+
+      await processAt(index + 1);
+    };
+
+    await processAt(0);
   } finally {
     lock.release();
     await client.logout().catch(() => undefined);

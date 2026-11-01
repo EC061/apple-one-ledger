@@ -15,3 +15,7 @@ coverage/
 .tgrep/
 next-env.d.ts
 tsconfig.tsbuildinfo
+
+.venv/
+__pycache__/
+*.pyc

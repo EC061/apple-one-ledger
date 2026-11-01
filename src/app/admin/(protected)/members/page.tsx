@@ -181,7 +181,13 @@ export default async function MembersPage({
                               {row.open_id ? null : (
                                 <form action={adminCreateInvoiceAction} className="row" style={{ gap: 6 }}>
                                   <input type="hidden" name="userId" value={row.id} />
-                                  <select name="plan" className="select" style={{ width: "auto", flex: 1 }} defaultValue="quarterly">
+                                  <select
+                                    name="plan"
+                                    className="select"
+                                    style={{ width: "auto", flex: 1 }}
+                                    defaultValue="quarterly"
+                                    aria-label={`Term for ${row.name}`}
+                                  >
                                     {PLAN_ORDER.map((plan) => (
                                       <option key={plan} value={plan}>
                                         {PLANS[plan as Plan].label}

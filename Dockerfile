@@ -27,7 +27,7 @@ ENV NODE_ENV=production \
     DATA_DIR=/data
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends gosu \
+ && apt-get install -y --no-install-recommends gosu tesseract-ocr tesseract-ocr-eng \
  && rm -rf /var/lib/apt/lists/* \
  && groupadd --system --gid 1001 nodejs \
  && useradd --system --uid 1001 --gid nodejs --create-home nextjs \
