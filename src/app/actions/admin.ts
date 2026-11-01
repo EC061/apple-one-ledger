@@ -160,7 +160,8 @@ export async function saveSettingsAction(formData: FormData) {
       daysBefore: days.length ? Array.from(new Set(days)).sort((a, b) => b - a) : current.reminders.daysBefore,
       overdueEveryDays: Math.round(clamp(number(formData, "overdueEveryDays", 3), 1, 30)),
       adminDigest: flag(formData, "adminDigest"),
-      removalWarningDays: Math.round(clamp(number(formData, "removalWarningDays", 7), 1, 60)),
+      removalWarningDays: Math.round(clamp(number(formData, "removalWarningDays", 1), 1, 60)),
+      renewalNoticeDays: Math.round(clamp(number(formData, "renewalNoticeDays", 7), 1, 60)),
     });
   }
 

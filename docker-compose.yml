@@ -5,7 +5,7 @@ services:
         restart: always
         init: true
         ports:
-            - "18900:3000"
+            - "127.0.0.1:18900:3000"
         environment:
             DATA_DIR: /data
             DATABASE_PATH: /data/applecare.db
@@ -13,7 +13,7 @@ services:
             NODE_ENV: production
             SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET (32+ random chars)}
             ADMIN_REG_CODE: ${ADMIN_REG_CODE:?set ADMIN_REG_CODE}
-            APP_URL: ${APP_URL:-}
+            APP_URL: ${APP_URL:?set APP_URL (https://your-domain)}
         volumes:
             - ./data:/data
         security_opt:

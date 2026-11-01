@@ -1,46 +1,56 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { loginAction } from "@/app/actions/auth";
+import { unifiedAuthAction } from "@/app/actions/auth";
+import { adminCodeConfigured } from "@/lib/auth";
 import { Notice } from "@/components/ui";
 import SubmitButton from "@/components/SubmitButton";
 
 export const metadata: Metadata = {
   title: "Sign in",
-  description: "Sign in to the family plan ledger with your access code.",
+  description: "Sign in or create your account with an access, invite or admin code.",
 };
 
 export const dynamic = "force-dynamic";
 
 const ERRORS: Record<string, string> = {
-  invalid: "That access code was not recognised. Check for typos, or ask the admin to reset it.",
-  empty: "Enter your access code.",
-  removed: "Your seat has been removed from this plan. Contact the admin.",
-  rate: "Too many attempts. Wait 15 minutes and try again.",
-  invite: "That invite link is not valid any more.",
-  used: "That invite has already been used. Sign in with your access code instead.",
-  expired: "That invite has expired. Ask the admin for a new one.",
+  empty: "Enter your code.",
+  invalid: "That code was not recognised.",
+  removed: "This seat has been removed. Contact the admin.",
+  rate: "Too many attempts. Wait 15 minutes.",
+  email: "Enter a valid email address.",
+  "admin-email": "Admin sign-in needs the admin email address.",
+  name: "Enter your name (2–60 characters) to create an account.",
+  claimed: "This deployment already has an admin with a different email.",
+  used: "That invite has already been used.",
+  expired: "That invite has expired.",
+  full: "All seats are taken.",
+  exists: "That email already has an account — sign in with its access code.",
 };
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; code?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, code } = await searchParams;
+  const adminReady = adminCodeConfigured();
 
   return (
     <div className="auth-wrap">
-      <div className="auth-card">
+      <div className="auth-card" style={{ maxWidth: 470 }}>
         <div className="auth-brand">
           <span className="brand-mark">A1</span>
           <div>
             <strong>Apple One Ledger</strong>
-            <div className="muted small">Member sign in</div>
+            <div className="muted small">Members and admin · one page</div>
           </div>
         </div>
 
-        <h1 style={{ fontSize: 22 }}>Welcome back</h1>
-        <p className="muted small">Enter the access code you received when you joined.</p>
+        <h1 style={{ fontSize: 22 }}>Continue with your code</h1>
+        <p className="muted small">
+          The same field works for members, new invites and the admin. What happens next depends on
+          the code you enter.
+        </p>
 
         {error ? (
           <div style={{ marginBottom: 14 }}>
@@ -48,10 +58,10 @@ export default async function LoginPage({
           </div>
         ) : null}
 
-        <form action={loginAction} className="stack-sm">
+        <form action={unifiedAuthAction} className="stack-sm">
           <div className="field">
             <label className="label" htmlFor="code">
-              Access code
+              Access, invite or admin code
             </label>
             <input
               id="code"
@@ -61,24 +71,57 @@ export default async function LoginPage({
               autoComplete="one-time-code"
               autoCapitalize="characters"
               spellCheck={false}
+              defaultValue={code ?? ""}
               required
             />
-            <span className="hint">Format: four groups of four characters.</span>
           </div>
-          <SubmitButton className="btn btn-primary btn-block" pending="Signing in…">
-            Sign in
+
+          <div className="form-grid">
+            <div className="field">
+              <label className="label" htmlFor="name">
+                Name
+              </label>
+              <input id="name" name="name" className="input" placeholder="Only for a new account" autoComplete="name" />
+            </div>
+            <div className="field">
+              <label className="label" htmlFor="email">
+                Email
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                className="input"
+                placeholder="Admin or new invite"
+                autoComplete="email"
+              />
+            </div>
+          </div>
+
+          <SubmitButton className="btn btn-primary btn-block" pending="Checking…">
+            Continue
           </SubmitButton>
         </form>
 
+        <div className="notice small" style={{ marginTop: 14 }}>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            <li>
+              <strong>Member:</strong> your saved access code — name and email can stay empty.
+            </li>
+            <li>
+              <strong>New member:</strong> the invite code, plus your name and email.
+            </li>
+            <li>
+              <strong>Admin:</strong> the <span className="mono">ADMIN_REG_CODE</span> (12+ characters) and the admin email.
+              {adminReady ? "" : " Admin sign-in is disabled until that variable is set."}
+            </li>
+          </ul>
+        </div>
+
         <hr />
         <div className="row-between small">
-          <span className="muted">Have an invite link?</span>
-          <span className="muted">Open it to create your seat.</span>
-        </div>
-        <div className="row-between small" style={{ marginTop: 10 }}>
           <Link href="/">← Back to overview</Link>
           <Link href="/#how-it-works">How it works</Link>
-          <Link href="/admin/login">Admin sign in</Link>
         </div>
       </div>
     </div>

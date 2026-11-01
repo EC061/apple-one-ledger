@@ -50,12 +50,12 @@ export function verifyAccessCode(code: string, hash: string | null): boolean {
 }
 
 export function adminCodeConfigured(): boolean {
-  return Boolean(process.env.ADMIN_REG_CODE && process.env.ADMIN_REG_CODE.length >= 6);
+  return Boolean(process.env.ADMIN_REG_CODE && process.env.ADMIN_REG_CODE.length >= 12);
 }
 
 export function verifyAdminCode(input: string): boolean {
   const expected = process.env.ADMIN_REG_CODE;
-  if (!expected || expected.length < 6) return false;
+  if (!expected || expected.length < 12) return false;
   const a = createHash("sha256").update(input).digest();
   const b = createHash("sha256").update(expected).digest();
   return timingSafeEqual(a, b);

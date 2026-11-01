@@ -4,7 +4,13 @@ import { addDays, daysBetween, formatDate, formatMoney, today } from "./dates";
 import { getSettings } from "./settings";
 import { latestStoredRate, refreshRate } from "./fx";
 import { markOverdue } from "./billing";
-import { sendDigestEmail, sendReminderEmail, sendRemovalWarningEmail } from "./email";
+import {
+  sendDigestEmail,
+  sendReminderEmail,
+  sendRemovalWarningEmail,
+  sendRenewalAdminEmail,
+  sendRenewalNoticeEmail,
+} from "./email";
 import { checkStorage } from "./storage";
 import { getBaseUrl } from "./url";
 import { getAdmin, seatCapacity, seatsUsed } from "./auth";
@@ -57,7 +63,7 @@ export async function sendDueReminders(day: string): Promise<number> {
     const daysLeft = daysBetween(day, invoice.due_date);
     const user = asUser(invoice);
 
-    if (daysLeft < -settings.plan.graceDays) {
+    if (daysLeft <= -settings.plan.graceDays) {
       // Past the grace period: periodic nudge that the seat will be removed.
       if (Math.abs(daysLeft) % Math.max(settings.reminders.removalWarningDays, 1) === 0) {
         jobs.push(() => sendRemovalWarningEmail({ user, invoice, baseUrl }));
@@ -78,6 +84,55 @@ export async function sendDueReminders(day: string): Promise<number> {
   }
 
   const results = await Promise.all(jobs.map((job) => job()));
+  return results.filter((result) => result.status === "sent").length;
+}
+
+/**
+ * "Coverage ends in N days" notices, based on paid_through rather than an
+ * invoice. Members who already have an open invoice are skipped.
+ */
+export async function sendRenewalNotices(day: string): Promise<number> {
+  const settings = getSettings();
+  const days = Math.max(settings.reminders.renewalNoticeDays, 1);
+  const target = addDays(day, days);
+
+  const rows = db()
+    .prepare(
+      `SELECT u.* FROM users u
+       WHERE u.status = 'active' AND u.paid_through = ?
+         AND NOT EXISTS (
+           SELECT 1 FROM invoices i
+           WHERE i.user_id = u.id AND i.status IN ('awaiting_payment','submitted','overdue')
+         )`,
+    )
+    .all(target) as unknown as User[];
+
+  if (rows.length === 0) return 0;
+
+  const baseUrl = await getBaseUrl();
+  const results = await Promise.all(
+    rows.map((user) =>
+      sendRenewalNoticeEmail({
+        user,
+        paidThrough: target,
+        days,
+        baseUrl,
+        dedupeKey: `renewal:${user.id}:${day}`,
+      }),
+    ),
+  );
+
+  const admin = getAdmin();
+  if (admin) {
+    await sendRenewalAdminEmail({
+      admin,
+      rows: rows.map((user) => ({ name: user.name, email: user.email, paidThrough: target })),
+      days,
+      baseUrl,
+      day,
+    });
+  }
+
   return results.filter((result) => result.status === "sent").length;
 }
 
@@ -116,6 +171,7 @@ export interface DailyResult {
   day: string;
   overdueMarked: number;
   remindersSent: number;
+  renewalNotices: number;
   digestSent: boolean;
   fxRefreshed: boolean;
   storage?: { over: number; sent: number };
@@ -128,7 +184,7 @@ export async function runDailyJobs(options: { skipEmail?: boolean } = {}): Promi
   const day = today(settings.plan.timezone);
 
   if (schedulerState.__a1JobsRunning) {
-    return { day, overdueMarked: 0, remindersSent: 0, digestSent: false, fxRefreshed: false };
+    return { day, overdueMarked: 0, remindersSent: 0, renewalNotices: 0, digestSent: false, fxRefreshed: false };
   }
   schedulerState.__a1JobsRunning = true;
   try {
@@ -149,8 +205,10 @@ export async function runDailyJobs(options: { skipEmail?: boolean } = {}): Promi
 
     let remindersSent = 0;
     let digestSent = false;
+    let renewalNotices = 0;
     if (!options.skipEmail && settings.reminders.enabled) {
       remindersSent = await sendDueReminders(day);
+      renewalNotices = await sendRenewalNotices(day);
       if (settings.reminders.adminDigest) digestSent = await sendAdminDigest(day);
     }
 
@@ -163,7 +221,7 @@ export async function runDailyJobs(options: { skipEmail?: boolean } = {}): Promi
       }
     }
 
-    return { day, overdueMarked, remindersSent, digestSent, fxRefreshed, storage };
+    return { day, overdueMarked, remindersSent, renewalNotices, digestSent, fxRefreshed, storage };
   } finally {
     schedulerState.__a1JobsRunning = false;
   }

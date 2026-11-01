@@ -97,7 +97,7 @@ export async function sendMail(input: {
     await t.sendMail({
       from: smtp.from,
       to: input.to,
-      subject: input.subject,
+      subject: input.subject.replace(/[\r\n]+/g, " "),
       text: input.text,
       html: input.html,
     });
@@ -139,6 +139,23 @@ function layout(title: string, body: string, footer: string): string {
 </body></html>`;
 }
 
+function esc(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => {
+    switch (character) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      default:
+        return "&#39;";
+    }
+  });
+}
+
 function p(text: string) {
   return `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#25352e;">${text}</p>`;
 }
@@ -174,7 +191,7 @@ export async function sendInviteEmail(input: { to: string; url: string; expiresA
 
   const html = layout(
     "Your seat is ready",
-    p(`You have been invited to share <strong>${settings.plan.name}</strong>.`) +
+    p(`You have been invited to share <strong>${esc(settings.plan.name)}</strong>.`) +
       p("Open the link below to claim your seat. You will set up your own login code on the next screen.") +
       button(input.url, "Claim my seat") +
       (input.expiresAt ? p(`This invite expires on <strong>${formatDate(input.expiresAt)}</strong>.`) : "") +
@@ -189,7 +206,7 @@ export async function sendAccessCodeEmail(user: User, code: string, baseUrl: str
   const text = `Hi ${user.name},\n\nYour login code is: ${code}\n\nKeep it private. Sign in at ${baseUrl}/login\n`;
   const html = layout(
     "Your login code",
-    p(`Hi ${user.name}, here is the code you will use to sign in.`) +
+    p(`Hi ${esc(user.name)}, here is the code you will use to sign in.`) +
       `<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:22px;letter-spacing:.12em;background:#f4f7f5;border:1px dashed #c9d6cf;border-radius:9px;padding:16px;text-align:center;margin:10px 0 18px;">${code}</div>` +
       p("Keep this private. Anyone with this code can view and manage your share of the plan.") +
       button(`${baseUrl}/login`, "Open the dashboard"),
@@ -212,7 +229,7 @@ export async function sendReminderEmail(input: {
   const url = `${baseUrl}/dashboard/pay/${invoice.id}`;
 
   const body =
-    p(`Hi ${user.name},`) +
+    p(`Hi ${esc(user.name)},`) +
     p(
       overdue
         ? `Your payment for the term starting <strong>${formatDate(invoice.period_start)}</strong> is past due. Please settle it to keep your seat.`
@@ -266,7 +283,7 @@ export async function sendRemovalWarningEmail(input: { user: User; invoice: Invo
     text,
     html: layout(
       "Your seat is at risk",
-      p(`Hi ${user.name},`) +
+      p(`Hi ${esc(user.name)},`) +
         p(
           `Your payment of <strong>${formatMoney(invoice.amount_usd)}</strong> for <strong>${formatDate(invoice.period_start)} – ${formatDate(invoice.period_end)}</strong> is still outstanding.`,
         ) +
@@ -296,7 +313,7 @@ export async function sendReceiptEmail(input: { user: User; invoice: Invoice; ba
     text,
     html: layout(
       "Payment received",
-      p(`Hi ${user.name},`) +
+      p(`Hi ${esc(user.name)},`) +
         p("Thanks — your payment has been recorded and your seat is covered for the term below.") +
         details([
           ["Amount", formatMoney(invoice.amount_usd)],
@@ -353,7 +370,7 @@ export async function sendDigestEmail(input: {
             ${input.rows
               .map(
                 (r) =>
-                  `<tr><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;">${r.name}<br><span style="color:#6b7c74;font-size:12px;">${r.email}</span></td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;">${r.status}</td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;text-align:right;">${formatMoney(r.amount)}</td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;text-align:right;">${formatDate(r.due)}</td></tr>`,
+                  `<tr><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;">${esc(r.name)}<br><span style="color:#6b7c74;font-size:12px;">${esc(r.email)}</span></td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;">${r.status}</td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;text-align:right;">${formatMoney(r.amount)}</td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;text-align:right;">${formatDate(r.due)}</td></tr>`,
               )
               .join("")}
           </table>`
@@ -417,7 +434,7 @@ export async function sendStorageAlertEmail(input: {
           ${list
             .map(
               (row) =>
-                `<tr><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;">${row.name}<br><span style="color:#6b7c74;font-size:12px;">${row.email}</span></td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;text-align:right;font-weight:600;">${gb(row.usedGb)}</td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;text-align:right;color:#6b7c74;">${gb(row.quotaGb)}</td></tr>`,
+                `<tr><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;">${esc(row.name)}<br><span style="color:#6b7c74;font-size:12px;">${esc(row.email)}</span></td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;text-align:right;font-weight:600;">${gb(row.usedGb)}</td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;text-align:right;color:#6b7c74;">${gb(row.quotaGb)}</td></tr>`,
             )
             .join("")}
         </table>` +
@@ -442,7 +459,7 @@ export async function sendStorageAlertEmail(input: {
 
   const html = layout(
     "You are over your storage share",
-    p(`Hi ${user.name},`) +
+    p(`Hi ${esc(user.name)},`) +
       p(
         `The family iCloud+ pool is <strong>${gb(totalGb)}</strong>, split evenly across the plan. Your share is <strong>${gb(quota)}</strong>.`,
       ) +
@@ -463,4 +480,82 @@ export async function sendReceiptForInvoice(invoiceId: string) {
   const user = db().prepare("SELECT * FROM users WHERE id = ?").get(invoice.user_id) as User | undefined;
   if (!user) return;
   await sendReceiptEmail({ user, invoice, baseUrl: await getBaseUrl() }).catch(() => undefined);
+}
+
+export async function sendRenewalNoticeEmail(input: {
+  user: User;
+  paidThrough: string;
+  days: number;
+  baseUrl: string;
+  dedupeKey: string;
+}) {
+  const { user, paidThrough, days, baseUrl } = input;
+  const subject = `Your plan coverage ends in ${days} days`;
+  const text = [
+    `Hi ${user.name},`,
+    "",
+    `Your seat is covered until ${formatDate(paidThrough)} — ${days} days from now.`,
+    "Renew to keep the seat; an unpaid seat is flagged for removal once it lapses.",
+    "",
+    `${baseUrl}/dashboard`,
+  ].join("\n");
+
+  const html = layout(
+    "Coverage ends soon",
+    p(`Hi ${esc(user.name)},`) +
+      p(
+        `Your seat is covered until <strong>${formatDate(paidThrough)}</strong> — ${days} days from now.`,
+      ) +
+      p("Renew to keep the seat. An unpaid seat is flagged for removal once it lapses.") +
+      button(`${baseUrl}/dashboard`, "Renew in the dashboard"),
+    "You receive this because you hold a seat on the family plan.",
+  );
+
+  return sendMail({ to: user.email, subject, text, html, kind: "renewal-notice", dedupeKey: input.dedupeKey });
+}
+
+export async function sendRenewalAdminEmail(input: {
+  admin: User;
+  rows: { name: string; email: string; paidThrough: string }[];
+  days: number;
+  baseUrl: string;
+  day: string;
+}) {
+  const { admin, rows, days, baseUrl, day } = input;
+  const subject = `Renewal in ${days} days: ${rows.length} member${rows.length === 1 ? "" : "s"}`;
+  const text = [
+    `Coverage ends in ${days} days for:`,
+    "",
+    ...rows.map((row) => `${row.name} <${row.email}> — until ${formatDate(row.paidThrough)}`),
+    "",
+    `${baseUrl}/admin/pool`,
+  ].join("\n");
+
+  const html = layout(
+    `Renewal in ${days} days`,
+    p(`${rows.length} member(s) reach the end of their paid coverage in ${days} days.`) +
+      `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:13px;border-collapse:collapse;">
+        <tr style="text-align:left;color:#6b7c74;">
+          <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;">Member</th>
+          <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;text-align:right;">Covered until</th>
+        </tr>
+        ${rows
+          .map(
+            (row) =>
+              `<tr><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;">${esc(row.name)}<br><span style="color:#6b7c74;font-size:12px;">${esc(row.email)}</span></td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;text-align:right;">${formatDate(row.paidThrough)}</td></tr>`,
+          )
+          .join("")}
+      </table>` +
+      button(`${baseUrl}/admin/pool`, "Open the active pool"),
+    "Sent once per day while the renewal window is open.",
+  );
+
+  return sendMail({
+    to: admin.email,
+    subject,
+    text,
+    html,
+    kind: "renewal-admin",
+    dedupeKey: `renewal-admin:${day}`,
+  });
 }
