@@ -4,7 +4,7 @@
 # Build on the native build platform: the app has no native modules (node:sqlite
 # is built in), so the same JS output serves amd64 and arm64. This avoids slow
 # QEMU builds for the arm64 image.
-FROM --platform=$BUILDPLATFORM node:24-bookworm-slim AS deps
+FROM --platform=$BUILDPLATFORM node:26-bookworm-slim AS deps
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY package.json package-lock.json ./
@@ -12,7 +12,7 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci --no-audit --no-fund --prefer-offline
 
 # ---------- build ----------
-FROM --platform=$BUILDPLATFORM node:24-bookworm-slim AS builder
+FROM --platform=$BUILDPLATFORM node:26-bookworm-slim AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
@@ -22,7 +22,7 @@ RUN --mount=type=cache,target=/app/.next/cache \
     npm run build
 
 # ---------- runtime ----------
-FROM node:24-bookworm-slim AS runner
+FROM node:26-bookworm-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production \
