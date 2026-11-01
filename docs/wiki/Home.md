@@ -28,6 +28,6 @@ docker compose pull
 docker compose up -d
 ```
 
-Then `http://127.0.0.1:18900/login` → **Create an account** with `ADMIN_REG_CODE`, email and password → **Invites** → send a token.
+Then `http://127.0.0.1:18900/signup` with `ADMIN_REG_CODE`, email and password → **Invites**. Sign in at `/login`.
 
 The compose file binds to loopback; terminate TLS with Caddy or nginx.

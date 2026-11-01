@@ -27,16 +27,16 @@ Everything else is stored in SQLite and editable at **Admin → Settings**:
 ## First run
 
 1. Set `.env` (see above) and `docker compose up -d`.
-2. Open `/login` → **Create an account**: `ADMIN_REG_CODE`, name, email and a strong password →
-   admin account is created and you land in `/admin`. Sign in later with email + password.
-3. Create an invite under **Invites**; the member opens the link and sets their own name, email
-   and password.
+2. Open `/signup`: `ADMIN_REG_CODE`, name, email and a strong password → admin account is created
+   and you land in `/admin`. Sign in later at `/login` with email + password.
+3. Create an invite under **Invites**; the member opens the link, lands on `/signup`, and sets
+   their own name, email and password.
 4. Set payment handles and SMTP in Settings before sending invoices.
 
 ## Notes
 
 - Passwords are hashed with scrypt. A member who forgets it gets a new one from
   **Members → Set password** (that also signs them out everywhere). The admin can recover their
-  own account by using `ADMIN_REG_CODE` with the same email in **Create an account**.
+  own account by using `ADMIN_REG_CODE` with the same email on `/signup`.
 - Removing a seat revokes sessions, voids open invoices and frees the seat; history stays.
 - Timezone affects "today", due dates, reminders and digests.

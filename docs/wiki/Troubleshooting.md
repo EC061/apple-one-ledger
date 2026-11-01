@@ -9,9 +9,9 @@ public `https://` URL.
 ## Admin sign-in says invalid
 
 - Login is **email + password**, not the admin code.
-- The admin code is only for **Create an account** (first run) or password recovery with the same
+- The admin code is only for `/signup` (first run) or password recovery with the same
   email; it must be at least **12 characters**.
-- If you forgot the admin password, use `Create an account` with `ADMIN_REG_CODE` and the admin
+- If you forgot the admin password, use `/signup` with `ADMIN_REG_CODE` and the admin
   email to set a new one.
 
 ## Member/invite sign-in fails
