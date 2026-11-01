@@ -51,8 +51,9 @@ git clone https://github.com/<you>/applecare-one-tracker.git
 cd applecare-one-tracker
 
 cp .env.example .env
-# edit .env — at minimum SESSION_SECRET and ADMIN_REG_CODE
+# edit .env — at minimum SESSION_SECRET (32+ chars) and ADMIN_REG_CODE
 #   openssl rand -base64 48
+# optional but recommended: INGEST_TOKEN, STORAGE_TOKEN, CRON_SECRET
 
 docker compose up -d --build
 ```
