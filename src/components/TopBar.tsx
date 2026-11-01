@@ -13,6 +13,7 @@ export default function TopBar({ user, area }: { user: User; area: "member" | "a
           { href: "/admin/invoices", label: "Invoices" },
           { href: "/admin/invites", label: "Invites" },
           { href: "/admin/settings", label: "Settings" },
+          { href: "/quick", label: "Quick" },
         ]
       : [{ href: "/dashboard", label: "Dashboard", exact: true }];
 

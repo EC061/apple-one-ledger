@@ -16,7 +16,6 @@ export const metadata: Metadata = {
   description: "Cost-sharing ledger for a shared Apple One Premier + AppleCare One family plan.",
 };
 
-const ICY = "iCloud";
 
 export default async function HomePage() {
   const [lang, theme] = await Promise.all([getLang(), getTheme()]);

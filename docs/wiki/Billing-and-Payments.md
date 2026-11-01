@@ -46,6 +46,12 @@ Settings for offline deployments or to match the payment app's own spread.
   seat or contact the member. The member is not emailed again.
 - Removal itself is always an admin action (Members → Remove seat).
 
+## Quick control (installed app)
+
+For the admin on a phone, `/quick` lists every member with their open invoice and a form to choose
+the term, method, currency and amount, attach a payment screenshot, and mark it paid. It also
+uploads WeChat/Alipay QR images. Proof images and QR codes are stored in `DATA_DIR/uploads`.
+
 ## Why no automatic bank hook
 
 WeChat Pay, Alipay, Venmo and Zelle expose no webhook/API for personal transfers. Automating it

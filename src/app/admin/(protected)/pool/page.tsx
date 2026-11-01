@@ -146,9 +146,14 @@ export default async function PoolPage() {
                         </div>
                       </td>
                       <td className="right">
-                        <Link href="/admin/members" className="btn btn-secondary btn-sm">
-                          Manage
-                        </Link>
+                        <div className="row" style={{ justifyContent: "flex-end", gap: 6 }}>
+                          <Link href={`/admin/preview/${row.id}`} className="btn btn-secondary btn-sm">
+                            Preview
+                          </Link>
+                          <Link href="/admin/members" className="btn btn-secondary btn-sm">
+                            Manage
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   );

@@ -8,10 +8,9 @@ import {
   adminMarkPaidAction,
   adminSendReminderAction,
   adminVoidInvoiceAction,
-  approvePaymentAction,
-  rejectPaymentAction,
 } from "@/app/actions/admin";
 import { Empty, MethodBadge, Notice, StatusBadge } from "@/components/ui";
+import { PendingPayments } from "@/components/admin/InvoiceSections";
 import SubmitButton from "@/components/SubmitButton";
 import type { Invoice, PaymentMethod, Plan } from "@/lib/types";
 
@@ -37,6 +36,7 @@ const ERRORS: Record<string, string> = {
 interface Row extends Invoice {
   user_name: string;
   user_email: string;
+  proof_url: string | null;
 }
 
 export default async function InvoicesPage({
@@ -50,7 +50,10 @@ export default async function InvoicesPage({
 
   const rows = db()
     .prepare(
-      `SELECT i.*, u.name AS user_name, u.email AS user_email
+      `SELECT i.*, u.name AS user_name, u.email AS user_email,
+              (SELECT p.proof_url FROM payments p
+               WHERE p.invoice_id = i.id AND p.proof_url IS NOT NULL
+               ORDER BY p.created_at DESC LIMIT 1) AS proof_url
        FROM invoices i JOIN users u ON u.id = i.user_id
        WHERE ${filter.where}
        ORDER BY i.created_at DESC LIMIT 200`,
@@ -74,6 +77,7 @@ export default async function InvoicesPage({
     user_name: string;
     reference: string;
     expected_usd: number;
+    proof_url: string | null;
   }[];
 
   const members = db()
@@ -104,66 +108,7 @@ export default async function InvoicesPage({
         </div>
       </div>
 
-      {pending.length > 0 ? (
-        <div className="card">
-          <div className="card-head">
-            <h2>Payments to review</h2>
-            <span className="badge badge-warn">{pending.length}</span>
-          </div>
-          <div className="table-wrap">
-            <table className="data">
-              <thead>
-                <tr>
-                  <th>Member</th>
-                  <th>Reference</th>
-                  <th>Method</th>
-                  <th className="right">Received</th>
-                  <th>When</th>
-                  <th className="right">Decide</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pending.map((payment) => (
-                  <tr key={payment.id}>
-                    <td>{payment.user_name}</td>
-                    <td className="mono small">{payment.reference}</td>
-                    <td>
-                      <MethodBadge method={payment.method} />
-                    </td>
-                    <td className="right">
-                      {payment.currency === "CNY" ? `¥${payment.amount.toFixed(2)}` : formatMoney(payment.amount)}
-                      <div className="muted small">
-                        ≈ {formatMoney(payment.amount_usd)} of {formatMoney(payment.expected_usd)}
-                      </div>
-                    </td>
-                    <td className="small">{formatDateTime(payment.created_at, settings.plan.timezone)}</td>
-                    <td className="right">
-                      <div className="row" style={{ justifyContent: "flex-end", gap: 6 }}>
-                        <form action={approvePaymentAction} className="row" style={{ gap: 6 }}>
-                          <input type="hidden" name="paymentId" value={payment.id} />
-                          <label className="check small" title="Approve a payment smaller than the invoice">
-                            <input type="checkbox" name="partial" />
-                            <span>partial</span>
-                          </label>
-                          <SubmitButton className="btn btn-primary btn-sm" pending="…">
-                            Approve
-                          </SubmitButton>
-                        </form>
-                        <form action={rejectPaymentAction}>
-                          <input type="hidden" name="paymentId" value={payment.id} />
-                          <SubmitButton className="btn btn-danger btn-sm" pending="…">
-                            Reject
-                          </SubmitButton>
-                        </form>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : null}
+      <PendingPayments pending={pending} settings={settings} />
 
       <div className="card">
         <div className="card-head">
@@ -263,6 +208,11 @@ export default async function InvoicesPage({
                             <Link href={`/dashboard/pay/${invoice.id}`} className="btn btn-secondary btn-sm">
                               View
                             </Link>
+                            {invoice.proof_url ? (
+                              <a href={invoice.proof_url} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
+                                Proof
+                              </a>
+                            ) : null}
 
                             {invoice.status !== "paid" && invoice.status !== "void" ? (
                               <>

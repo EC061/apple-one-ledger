@@ -49,7 +49,7 @@ Builds run on native runners (no QEMU), with per-arch registry caches
 
 ## Backups
 
-SQLite lives in `./data` with WAL. Consistent hot backup:
+SQLite and uploaded QR images live in `./data` (`applecare.db`, `uploads/`). Consistent hot backup:
 
 ```bash
 docker compose exec app node -e "

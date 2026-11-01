@@ -1273,3 +1273,32 @@ details[open] > summary {
 .price-renew {
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------------------------------------------------------------- */
+/* Quick control (PWA)                                              */
+/* ---------------------------------------------------------------- */
+
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+
+.quick-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.quick-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 520px) {
+  .quick-grid {
+    grid-template-columns: 1fr;
+  }
+}

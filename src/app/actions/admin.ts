@@ -21,6 +21,7 @@ import {
 } from "@/lib/billing";
 import { getCurrentRate, refreshRate } from "@/lib/fx";
 import { getSettings, saveSection } from "@/lib/settings";
+import { saveQrUpload } from "@/lib/uploads";
 import { isPlan } from "@/lib/pricing";
 import { isPaymentMethod } from "@/lib/labels";
 import {
@@ -117,13 +118,34 @@ export async function saveSettingsAction(formData: FormData) {
   }
 
   if (intent === "payments") {
+    let wechatQrUrl = text(formData, "wechatQrUrl");
+    let alipayQrUrl = text(formData, "alipayQrUrl");
+
+    const wechatFile = formData.get("wechatQrFile");
+    if (wechatFile instanceof File && wechatFile.size > 0) {
+      try {
+        wechatQrUrl = await saveQrUpload(wechatFile, "wechat");
+      } catch (error) {
+        redirect("/admin/settings?error=qr");
+      }
+    }
+
+    const alipayFile = formData.get("alipayQrFile");
+    if (alipayFile instanceof File && alipayFile.size > 0) {
+      try {
+        alipayQrUrl = await saveQrUpload(alipayFile, "alipay");
+      } catch (error) {
+        redirect("/admin/settings?error=qr");
+      }
+    }
+
     saveSection("payments", {
       venmoHandle: text(formData, "venmoHandle").replace(/^@/, ""),
       zelleEmail: text(formData, "zelleEmail"),
       wechatId: text(formData, "wechatId"),
       alipayId: text(formData, "alipayId"),
-      wechatQrUrl: text(formData, "wechatQrUrl"),
-      alipayQrUrl: text(formData, "alipayQrUrl"),
+      wechatQrUrl,
+      alipayQrUrl,
       instructions: text(formData, "instructions").slice(0, 2000),
     });
   }
@@ -217,7 +239,7 @@ export async function refreshFxAction() {
   try {
     await refreshRate();
   } catch (error) {
-    redirect(`/admin/settings?error=${encodeURIComponent((error as Error).message)}`);
+    redirect("/admin/settings?error=qr");
   }
   refreshAll();
   redirect("/admin/settings?saved=fx-refresh");

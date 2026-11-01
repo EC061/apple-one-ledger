@@ -169,6 +169,10 @@ export default async function MembersPage({
                             </p>
                           ) : (
                             <>
+                              <Link href={`/admin/preview/${row.id}`} className="btn btn-secondary btn-sm btn-block">
+                                Preview dashboard
+                              </Link>
+
                               <form action={resetMemberPasswordAction} className="stack-sm">
                                 <input type="hidden" name="userId" value={row.id} />
                                 <input
