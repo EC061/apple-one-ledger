@@ -60,6 +60,7 @@ export async function sendDueReminders(day: string): Promise<number> {
     if (invoice.user_status !== "active") continue;
     // Already reported by the member: wait for the admin, do not dun them.
     if (invoice.status === "submitted") continue;
+    if (invoice.created_at.slice(0, 10) === day) continue; // invoice email already sent
     const daysLeft = daysBetween(day, invoice.due_date);
     const user = asUser(invoice);
 
@@ -146,6 +147,7 @@ export async function sendAdminDigest(day: string): Promise<boolean> {
     .prepare("SELECT COALESCE(SUM(amount_usd),0) AS total FROM invoices WHERE status = 'paid'")
     .get() as { total: number };
   const outstanding = open.reduce((sum, row) => sum + row.amount_usd, 0);
+  const removals = removalCandidates(day);
 
   const result = await sendDigestEmail({
     admin,
@@ -157,6 +159,11 @@ export async function sendAdminDigest(day: string): Promise<boolean> {
       amount: row.amount_usd,
       due: row.due_date,
       invoiceId: row.id,
+    })),
+    removals: removals.map((row) => ({
+      name: row.user_name,
+      email: row.user_email,
+      due: row.due_date,
     })),
     collected: Number(collectedRow.total),
     outstanding,

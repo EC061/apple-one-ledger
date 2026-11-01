@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { createInvoice, openInvoiceFor, submitInvoice, BillingError } from "@/lib/billing";
 import { getCurrentRate } from "@/lib/fx";
+import { sendInvoiceCreatedEmail } from "@/lib/email";
+import { getBaseUrl } from "@/lib/url";
 import { isPlan } from "@/lib/pricing";
 import { isPaymentMethod } from "@/lib/labels";
 import { db, nowIso, event } from "@/lib/db";
@@ -30,21 +32,26 @@ export async function createInvoiceAction(formData: FormData) {
   if (!rate || rate.source === "fallback") redirect("/dashboard?error=fx");
 
   let invoiceId: string;
+  let created: import("@/lib/types").Invoice | null = null;
   try {
-    const invoice = createInvoice({
+    created = createInvoice({
       userId: user.id,
       plan,
       fxRate: rate.rate,
       fxDate: rate.date,
       actor: user.id,
     });
-    invoiceId = invoice.id;
+    invoiceId = created.id;
   } catch (error) {
     const message = error instanceof BillingError ? error.message : "Could not create the invoice.";
     if (error instanceof BillingError && error.message.includes("already an open")) {
       redirect("/dashboard?error=open");
     }
     redirect(`/dashboard?error=${encodeURIComponent(message)}`);
+  }
+
+  if (created) {
+    await sendInvoiceCreatedEmail({ user, invoice: created, baseUrl: await getBaseUrl() }).catch(() => undefined);
   }
 
   revalidatePath("/dashboard");

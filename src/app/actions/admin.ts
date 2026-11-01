@@ -26,6 +26,7 @@ import {
   sendMail,
   sendInviteEmail,
   sendReceiptEmail,
+  sendInvoiceCreatedEmail,
   sendReceiptForInvoice,
   sendReminderEmail,
   verifySmtp,
@@ -432,6 +433,13 @@ export async function adminCreateInvoiceAction(formData: FormData) {
   }
 
   event(null, "invoice.admin_created", { invoiceId: id });
+
+  const created = db().prepare("SELECT * FROM invoices WHERE id = ?").get(id) as unknown as Invoice;
+  const member = db().prepare("SELECT * FROM users WHERE id = ?").get(userId) as unknown as User;
+  if (member) {
+    await sendInvoiceCreatedEmail({ user: member, invoice: created, baseUrl: await getBaseUrl() }).catch(() => undefined);
+  }
+
   refreshAll();
   redirect(`/admin/invoices?created=${id}`);
 }
