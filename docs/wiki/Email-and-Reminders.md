@@ -11,7 +11,6 @@ recorded in the email log with status `skipped` — nothing is silently lost.
 | Kind | Trigger |
 | --- | --- |
 | `invite` | Admin creates an invite with an email address |
-| `access-code` | Member account created |
 | `invoice-created` | Invoice issued (amount, due date, reference) |
 | `reminder` | 7 days before due (editable) |
 | `overdue` | Past due, per overdue cadence |

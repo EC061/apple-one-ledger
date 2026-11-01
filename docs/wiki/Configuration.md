@@ -4,8 +4,8 @@
 
 | Variable | Required | Notes |
 | --- | --- | --- |
-| `SESSION_SECRET` | yes | 32+ chars. Peppers access-code hashes; changing it invalidates all member codes. `openssl rand -base64 48`. |
-| `ADMIN_REG_CODE` | yes | 12+ chars. Admin sign-in code, never stored in SQLite. |
+| `SESSION_SECRET` | yes | 32+ chars. Peppers session token hashes; changing it signs everyone out. `openssl rand -base64 48`. |
+| `ADMIN_REG_CODE` | yes | 12+ chars. Registration/recovery code for the admin account; not a login password. |
 | `APP_URL` | yes | Canonical HTTPS URL. Used for emailed links; required so a forged Host header cannot poison them. |
 | `DATA_DIR` | compose sets | `/data`. |
 | `DATABASE_PATH` | compose sets | `/data/applecare.db`. |
@@ -27,15 +27,16 @@ Everything else is stored in SQLite and editable at **Admin → Settings**:
 ## First run
 
 1. Set `.env` (see above) and `docker compose up -d`.
-2. Open `/login`, enter `ADMIN_REG_CODE` + admin email → admin account is created and you land
-   in `/admin`.
-3. Create an invite under **Invites**; the member opens the link, enters the code plus name and
-   email, and gets an access code immediately (also emailed if SMTP is configured).
+2. Open `/login` → **Create an account**: `ADMIN_REG_CODE`, name, email and a strong password →
+   admin account is created and you land in `/admin`. Sign in later with email + password.
+3. Create an invite under **Invites**; the member opens the link and sets their own name, email
+   and password.
 4. Set payment handles and SMTP in Settings before sending invoices.
 
 ## Notes
 
-- Member access codes are shown once on creation. If lost, **Members → Reset access code**
-  issues a new one and signs that member out everywhere.
+- Passwords are hashed with scrypt. A member who forgets it gets a new one from
+  **Members → Set password** (that also signs them out everywhere). The admin can recover their
+  own account by using `ADMIN_REG_CODE` with the same email in **Create an account**.
 - Removing a seat revokes sessions, voids open invoices and frees the seat; history stays.
 - Timezone affects "today", due dates, reminders and digests.

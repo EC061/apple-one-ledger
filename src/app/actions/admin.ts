@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { db, newId, nowIso, event } from "@/lib/db";
 import {
   generateCode,
-  hashAccessCode,
+  hashPassword,
+  passwordProblem,
   requireAdmin,
   revokeUserSessions,
 } from "@/lib/auth";
@@ -35,7 +36,6 @@ import {
 import { runDailyJobs, sendAdminDigest } from "@/lib/reminders";
 import { updateStorage } from "@/lib/storage";
 import { getBaseUrl } from "@/lib/url";
-import { setAccessCodeFlash } from "@/lib/flash";
 import { addDays, today } from "@/lib/dates";
 import type { Invoice, Payment, User } from "@/lib/types";
 
@@ -291,37 +291,41 @@ export async function createMemberAction(formData: FormData) {
   const clash = db().prepare("SELECT 1 FROM users WHERE lower(email) = ?").get(email);
   if (clash) redirect("/admin/members?error=exists");
 
-  const code = generateCode();
+  const password = text(formData, "password");
+  const weak = passwordProblem(password);
+  if (weak) redirect("/admin/members?error=weak");
+
   const id = newId();
   const now = nowIso();
   db()
     .prepare(
-      `INSERT INTO users (id, role, name, email, access_code_hash, status, note, created_at, updated_at)
-       VALUES (?, 'member', ?, ?, ?, 'active', ?, ?, ?)`,
+      `INSERT INTO users (id, role, name, email, access_code_hash, password_hash, status, note, created_at, updated_at)
+       VALUES (?, 'member', ?, ?, NULL, ?, 'active', ?, ?, ?)`,
     )
-    .run(id, name, email, hashAccessCode(code), note || null, now, now);
+    .run(id, name, email, hashPassword(password), note || null, now, now);
 
-  await setAccessCodeFlash(code);
   event(null, "member.created", { id, email });
   refreshAll();
   redirect("/admin/members?created=1");
 }
 
-export async function resetMemberCodeAction(formData: FormData) {
+export async function resetMemberPasswordAction(formData: FormData) {
   await requireAdmin();
   const userId = text(formData, "userId");
+  const password = text(formData, "password");
   const user = db().prepare("SELECT * FROM users WHERE id = ?").get(userId) as unknown as User | undefined;
   if (!user) redirect("/admin/members?error=missing");
 
-  const code = generateCode();
-  db().prepare("UPDATE users SET access_code_hash = ?, updated_at = ? WHERE id = ?").run(
-    hashAccessCode(code),
+  const weak = passwordProblem(password);
+  if (weak) redirect("/admin/members?error=weak");
+
+  db().prepare("UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?").run(
+    hashPassword(password),
     nowIso(),
     userId,
   );
   await revokeUserSessions(userId);
-  await setAccessCodeFlash(code);
-  event(null, "member.code_reset", { userId });
+  event(null, "member.password_reset", { userId });
   revalidatePath("/admin/members");
   redirect("/admin/members?reset=1");
 }

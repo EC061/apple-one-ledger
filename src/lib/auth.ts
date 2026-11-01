@@ -1,5 +1,5 @@
 import "server-only";
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db, newId, nowIso } from "./db";
@@ -23,10 +23,6 @@ export function generateCode(groups = 4, size = 4): string {
   return out.join("-");
 }
 
-export function normalizeCode(value: string): string {
-  return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-}
-
 function pepper(): string {
   const secret = process.env.SESSION_SECRET || "";
   if (secret.length >= 32) return secret;
@@ -34,19 +30,32 @@ function pepper(): string {
   throw new Error("SESSION_SECRET must be set to at least 32 characters before anyone can sign in.");
 }
 
-export function hashAccessCode(code: string): string {
-  return createHash("sha256").update(`${pepper()}:${normalizeCode(code)}`).digest("hex");
-}
-
 export function sessionSecretOk(): boolean {
   return (process.env.SESSION_SECRET || "").length >= 32;
 }
 
-export function verifyAccessCode(code: string, hash: string | null): boolean {
-  if (!hash) return false;
-  const a = Buffer.from(hashAccessCode(code), "hex");
-  const b = Buffer.from(hash, "hex");
-  return a.length === b.length && timingSafeEqual(a, b);
+/** scrypt with a per-password salt, stored as scrypt$salt$hash. */
+export function hashPassword(password: string): string {
+  const salt = randomBytes(16).toString("hex");
+  const hash = scryptSync(password, salt, 64).toString("hex");
+  return `scrypt$${salt}$${hash}`;
+}
+
+export function verifyPassword(password: string, stored: string | null): boolean {
+  if (!stored) return false;
+  const [algorithm, salt, hash] = stored.split("$");
+  if (algorithm !== "scrypt" || !salt || !hash) return false;
+  const candidate = scryptSync(password, salt, 64);
+  const expected = Buffer.from(hash, "hex");
+  return candidate.length === expected.length && timingSafeEqual(candidate, expected);
+}
+
+export function passwordProblem(password: string): string | null {
+  if (password.length < 12) return "Use at least 12 characters.";
+  if (password.length > 200) return "Use at most 200 characters.";
+  const classes = [/[a-z]/, /[A-Z]/, /[0-9]/, /[^A-Za-z0-9]/].filter((rule) => rule.test(password)).length;
+  if (classes < 3) return "Mix upper case, lower case, numbers or symbols.";
+  return null;
 }
 
 export function adminCodeConfigured(): boolean {
@@ -62,7 +71,7 @@ export function verifyAdminCode(input: string): boolean {
 }
 
 function hashToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
+  return createHash("sha256").update(`${pepper()}:${token}`).digest("hex");
 }
 
 export async function createSession(userId: string) {
@@ -153,7 +162,7 @@ export function getAdmin(): User | null {
   );
 }
 
-export function createAdmin(email: string, name: string): User {
+export function createAdmin(email: string, name: string, password: string): User {
   const now = nowIso();
   const user: User = {
     id: newId(),
@@ -161,6 +170,7 @@ export function createAdmin(email: string, name: string): User {
     name: name.trim() || "Family admin",
     email: email.trim().toLowerCase(),
     access_code_hash: null,
+    password_hash: hashPassword(password),
     status: "active",
     paid_through: null,
     note: null,
@@ -171,10 +181,10 @@ export function createAdmin(email: string, name: string): User {
   };
   db()
     .prepare(
-      `INSERT INTO users (id, role, name, email, access_code_hash, status, paid_through, note, created_at, updated_at)
-       VALUES (?, ?, ?, ?, NULL, 'active', NULL, NULL, ?, ?)`,
+      `INSERT INTO users (id, role, name, email, access_code_hash, password_hash, status, paid_through, note, created_at, updated_at)
+       VALUES (?, ?, ?, ?, NULL, ?, 'active', NULL, NULL, ?, ?)`,
     )
-    .run(user.id, user.role, user.name, user.email, user.created_at, user.updated_at);
+    .run(user.id, user.role, user.name, user.email, user.password_hash, user.created_at, user.updated_at);
   return user;
 }
 

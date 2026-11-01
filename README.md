@@ -5,7 +5,7 @@ Six seats, quarterly/half-year/annual terms, USD or CNY, email reminders and a s
 
 ## What it does
 
-- **Seats**: 6 total, invite-token signup, admin can disable/restore a seat.
+- **Seats**: 6 total, invite-token signup, email + password login, admin can disable/restore a seat.
 - **Terms**: quarterly / half-year / annual; first term $45 / $90 / $180, renewals $51 / $96 / $180.
 - **Cost basis**: $89.94 per month ÷ 6 = **$14.99 per seat**.
 - **Payments**: WeChat Pay, Alipay, Venmo, Zelle; member reports, admin approves; CNY locks the daily USD→CNY rate.
@@ -26,8 +26,8 @@ docker compose pull
 docker compose up -d
 ```
 
-Open `http://127.0.0.1:18900/login`, enter `ADMIN_REG_CODE` with your email, then create
-invites under **Invites**. The compose file binds to loopback on purpose — put Caddy/nginx in
+Open `http://127.0.0.1:18900/login`, choose **Create an account**, and use `ADMIN_REG_CODE`
+with your name, email and a 12+ character password. Then create invites under **Invites**. The compose file binds to loopback on purpose — put Caddy/nginx in
 front for HTTPS.
 
 Local build: `docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build`

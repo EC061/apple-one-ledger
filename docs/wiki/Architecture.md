@@ -21,7 +21,7 @@ src/app
   actions                  server actions (auth, member, admin)
 src/lib
   db.ts                    schema, migrations, transactions
-  auth.ts                  sessions, access codes, admin code
+  auth.ts                  sessions, password hashing, admin/invite codes
   billing.ts               invoices, payments, coverage
   pricing.ts               plans, first-term/renewal prices, references
   fx.ts                    USD→CNY fetch + snapshot
@@ -36,7 +36,7 @@ src/instrumentation.ts     in-process scheduler (6 h)
 
 | Table | Purpose |
 | --- | --- |
-| `users` | admin + members; access-code hash, status, paid-through, storage GB |
+| `users` | admin + members; scrypt password hash, status, paid-through, storage GB |
 | `sessions` | hashed session tokens, 30-day default lifetime |
 | `invites` | one-time, expiring seat tokens |
 | `invoices` | term, period, amount USD/CNY, locked FX, status, reference |
