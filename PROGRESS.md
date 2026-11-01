@@ -50,7 +50,9 @@
 - [x] `tsc --noEmit` clean, `next build` clean
 - [x] E2E: admin claim → invite → join → server-rendered code → invoice $45/¥299.38 → auto-pay → coverage → storage batch (idempotent, 409, 400)
 - [x] Docker image builds and runs as non-root against a root-owned bind mount
-- [x] Backend + frontend design reviews completed (requested model IDs unavailable)
+- [x] Backend review by gpt-6.1-sol (T3 Code) — blocking findings fixed
+- [x] Frontend review by claude-opus-5-5 (T3 Code) — blocking findings fixed
+- [x] iCloud private-endpoint probe added under contrib/ (unsupported)
 
 ## Known limits (by design)
 - Apple has no public family-storage API; usage is reported (manual or Shortcut/OCR).

@@ -1,0 +1,6 @@
+[project]
+name = "icloud-probe"
+version = "0.1.0"
+description = "Unsupported probe for undocumented iCloud family/storage endpoints"
+requires-python = ">=3.10"
+dependencies = ["pyicloud>=2.0.0"]

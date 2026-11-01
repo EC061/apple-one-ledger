@@ -281,6 +281,12 @@ export function recordObservation(input: ObservationInput, actor: string | null)
         continue;
       }
 
+      const current = user.storage_updated_at ? new Date(user.storage_updated_at) : null;
+      if (current && current.getTime() > observedAt.getTime()) {
+        skipped.push({ reading, reason: "older than the current reading" });
+        continue;
+      }
+
       db()
         .prepare("UPDATE users SET storage_used_gb = ?, storage_updated_at = ?, updated_at = ? WHERE id = ?")
         .run(reading.usedGb, observedAt.toISOString(), nowIso(), user.id);

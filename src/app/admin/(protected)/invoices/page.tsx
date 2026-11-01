@@ -46,7 +46,7 @@ export default async function InvoicesPage({
 }) {
   const params = await searchParams;
   const settings = getSettings();
-  const filter = FILTERS.find((item) => item.key === params.status) ?? FILTERS[0];
+  const filter = FILTERS.find((item) => item.key === params.status) ?? FILTERS[1];
 
   const rows = db()
     .prepare(
@@ -82,14 +82,16 @@ export default async function InvoicesPage({
 
   return (
     <>
-      {params.error ? <Notice tone="error">{ERRORS[params.error] ?? params.error}</Notice> : null}
+      {params.error ? (
+        <Notice tone="error">{ERRORS[params.error] ?? "Something went wrong. Please try again."}</Notice>
+      ) : null}
       {params.saved === "paid" ? <Notice tone="ok">Invoice marked paid and a receipt was emailed.</Notice> : null}
       {params.saved === "void" ? <Notice tone="ok">Invoice voided.</Notice> : null}
       {params.saved === "approved" ? <Notice tone="ok">Pending payment approved.</Notice> : null}
       {params.saved === "rejected" ? <Notice tone="ok">Pending payment rejected.</Notice> : null}
       {params.saved === "sent" ? <Notice tone="ok">Reminder sent.</Notice> : null}
       {params.saved && !["paid", "void", "approved", "rejected", "sent"].includes(params.saved) ? (
-        <Notice tone="warn">Reminder logged with status: {params.saved}. Check SMTP settings.</Notice>
+        <Notice tone="warn">The reminder was logged but not delivered. Check SMTP settings.</Notice>
       ) : null}
       {params.created ? <Notice tone="ok">Invoice created.</Notice> : null}
 
@@ -137,8 +139,12 @@ export default async function InvoicesPage({
                     <td className="small">{formatDateTime(payment.created_at, settings.plan.timezone)}</td>
                     <td className="right">
                       <div className="row" style={{ justifyContent: "flex-end", gap: 6 }}>
-                        <form action={approvePaymentAction}>
+                        <form action={approvePaymentAction} className="row" style={{ gap: 6 }}>
                           <input type="hidden" name="paymentId" value={payment.id} />
+                          <label className="check small" title="Approve a payment smaller than the invoice">
+                            <input type="checkbox" name="partial" />
+                            <span>partial</span>
+                          </label>
                           <SubmitButton className="btn btn-primary btn-sm" pending="…">
                             Approve
                           </SubmitButton>
@@ -224,7 +230,7 @@ export default async function InvoicesPage({
                             <form action={adminMarkPaidAction} className="stack-sm">
                               <input type="hidden" name="invoiceId" value={invoice.id} />
                               <div className="row" style={{ gap: 6 }}>
-                                <select name="method" className="select" defaultValue="venmo" aria-label="Method">
+                                <select name="method" className="select" defaultValue={invoice.method ?? "venmo"} aria-label="Method">
                                   <option value="venmo">Venmo</option>
                                   <option value="zelle">Zelle</option>
                                   <option value="wechat">WeChat</option>

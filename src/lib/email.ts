@@ -59,21 +59,36 @@ export async function sendMail(input: {
   kind: string;
   dedupeKey?: string;
 }): Promise<SendResult> {
-  if (input.dedupeKey) {
-    const seen = db().prepare("SELECT 1 FROM emails WHERE dedupe_key = ?").get(input.dedupeKey);
-    if (seen) return { ok: true, status: "duplicate" };
-  }
-
   const id = newId();
   const createdAt = nowIso();
+
+  // Claim the dedupe key atomically before sending. A concurrent run loses the
+  // unique insert and is treated as a duplicate instead of double-sending.
+  if (input.dedupeKey) {
+    try {
+      db()
+        .prepare(
+          "INSERT INTO emails (id, to_addr, subject, kind, status, error, dedupe_key, created_at) VALUES (?, ?, ?, ?, 'sending', NULL, ?, ?)",
+        )
+        .run(id, input.to, input.subject, input.kind, input.dedupeKey, createdAt);
+    } catch {
+      return { ok: true, status: "duplicate" };
+    }
+  } else {
+    db()
+      .prepare(
+        "INSERT INTO emails (id, to_addr, subject, kind, status, error, dedupe_key, created_at) VALUES (?, ?, ?, ?, 'sending', NULL, NULL, ?)",
+      )
+      .run(id, input.to, input.subject, input.kind, createdAt);
+  }
+
   const t = transport();
 
   if (!t) {
-    db()
-      .prepare(
-        "INSERT INTO emails (id, to_addr, subject, kind, status, error, dedupe_key, created_at) VALUES (?, ?, ?, ?, 'skipped', ?, ?, ?)",
-      )
-      .run(id, input.to, input.subject, input.kind, "SMTP not configured", null, createdAt);
+    db().prepare("UPDATE emails SET status = 'skipped', error = ?, dedupe_key = NULL WHERE id = ?").run(
+      "SMTP not configured",
+      id,
+    );
     return { ok: false, status: "skipped", error: "SMTP not configured" };
   }
 
@@ -86,19 +101,13 @@ export async function sendMail(input: {
       text: input.text,
       html: input.html,
     });
-    db()
-      .prepare(
-        "INSERT INTO emails (id, to_addr, subject, kind, status, error, dedupe_key, created_at) VALUES (?, ?, ?, ?, 'sent', NULL, ?, ?)",
-      )
-      .run(id, input.to, input.subject, input.kind, input.dedupeKey ?? null, createdAt);
+    db().prepare("UPDATE emails SET status = 'sent' WHERE id = ?").run(id);
     return { ok: true, status: "sent" };
   } catch (error) {
     const message = (error as Error).message;
     db()
-      .prepare(
-        "INSERT INTO emails (id, to_addr, subject, kind, status, error, dedupe_key, created_at) VALUES (?, ?, ?, ?, 'failed', ?, ?, ?)",
-      )
-      .run(id, input.to, input.subject, input.kind, message, null, createdAt);
+      .prepare("UPDATE emails SET status = 'failed', error = ?, dedupe_key = NULL WHERE id = ?")
+      .run(message, id);
     return { ok: false, status: "failed", error: message };
   }
 }

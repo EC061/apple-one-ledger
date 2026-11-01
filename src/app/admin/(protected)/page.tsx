@@ -7,10 +7,11 @@ import { latestStoredRate } from "@/lib/fx";
 import { removalCandidates } from "@/lib/reminders";
 import { statusFor, storageTotals } from "@/lib/storage";
 import { smtpConfigured } from "@/lib/email";
-import { runJobsAction, sendDigestNowAction } from "@/app/actions/admin";
+import { adminCreateInvoiceAction, runJobsAction, sendDigestNowAction } from "@/app/actions/admin";
 import { Empty, Notice, Stat, StatusBadge, MethodBadge } from "@/components/ui";
 import SubmitButton from "@/components/SubmitButton";
-import type { Invoice } from "@/lib/types";
+import { PLANS, PLAN_ORDER } from "@/lib/pricing";
+import type { Invoice, Plan } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,20 @@ export default async function AdminOverviewPage({
        ORDER BY CASE i.status WHEN 'overdue' THEN 0 WHEN 'submitted' THEN 1 ELSE 2 END, i.due_date`,
     )
     .all() as unknown as (Invoice & { user_name: string; user_email: string })[];
+
+  const uncovered = db()
+    .prepare(
+      `SELECT u.id, u.name, u.email, u.paid_through
+       FROM users u
+       WHERE u.status = 'active' AND u.role = 'member'
+         AND (u.paid_through IS NULL OR u.paid_through < ?)
+         AND NOT EXISTS (
+           SELECT 1 FROM invoices i
+           WHERE i.user_id = u.id AND i.status IN ('awaiting_payment','submitted','overdue')
+         )
+       ORDER BY u.paid_through IS NOT NULL, u.paid_through`,
+    )
+    .all(day) as { id: string; name: string; email: string; paid_through: string | null }[];
 
   const pendingPayments = db()
     .prepare(
@@ -196,6 +211,55 @@ export default async function AdminOverviewPage({
           </div>
         )}
       </div>
+
+      {uncovered.length > 0 ? (
+        <div className="card">
+          <div className="card-head">
+            <div>
+              <h2>No coverage, no invoice</h2>
+              <span className="muted small">These members are not covered and have nothing open — bill them before the seat goes quiet.</span>
+            </div>
+            <span className="badge badge-warn">{uncovered.length}</span>
+          </div>
+          <div className="table-wrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Covered until</th>
+                  <th className="right">Create invoice</th>
+                </tr>
+              </thead>
+              <tbody>
+                {uncovered.map((member) => (
+                  <tr key={member.id}>
+                    <td>
+                      <div className="strong">{member.name}</div>
+                      <div className="muted small">{member.email}</div>
+                    </td>
+                    <td className="small">{member.paid_through ? formatDate(member.paid_through) : "never"}</td>
+                    <td className="right">
+                      <form action={adminCreateInvoiceAction} className="row" style={{ justifyContent: "flex-end", gap: 6 }}>
+                        <input type="hidden" name="userId" value={member.id} />
+                        <select name="plan" className="select" defaultValue="quarterly" aria-label={`Term for ${member.name}`}>
+                          {PLAN_ORDER.map((plan) => (
+                            <option key={plan} value={plan}>
+                              {PLANS[plan as Plan].label}
+                            </option>
+                          ))}
+                        </select>
+                        <SubmitButton className="btn btn-secondary btn-sm" pending="Creating…">
+                          Invoice
+                        </SubmitButton>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
 
       {pendingPayments.length > 0 ? (
         <div className="card">

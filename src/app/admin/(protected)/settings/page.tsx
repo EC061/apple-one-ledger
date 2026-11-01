@@ -48,7 +48,9 @@ export default async function SettingsPage({
   return (
     <>
       {params.saved ? <Notice tone="ok">{(params.saved && SAVED[params.saved]) ?? "Saved."}</Notice> : null}
-      {params.error ? <Notice tone="error">{params.error}</Notice> : null}
+      {params.error ? (
+        <Notice tone="error">That change could not be saved. Check the server log for the exact error.</Notice>
+      ) : null}
 
       <div className="row-between">
         <div>
@@ -646,6 +648,21 @@ export default async function SettingsPage({
                   Mailbox
                 </label>
                 <input id="imapMailbox" name="imapMailbox" className="input" defaultValue={imap.mailbox} />
+              </div>
+              <div className="field full">
+                <label className="label" htmlFor="imapAllowedSenders">
+                  Only accept mail from (comma separated)
+                </label>
+                <input
+                  id="imapAllowedSenders"
+                  name="imapAllowedSenders"
+                  className="input"
+                  defaultValue={imap.allowedSenders}
+                  placeholder="alerts@bank.com, no-reply@venmo.com"
+                />
+                <span className="hint">
+                  Required. Polling stays off while this is empty, so a random unread email can never settle an invoice.
+                </span>
               </div>
               <div className="field" style={{ justifyContent: "flex-end" }}>
                 <label className="check">

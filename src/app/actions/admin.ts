@@ -186,6 +186,7 @@ export async function saveSettingsAction(formData: FormData) {
         user: text(formData, "imapUser"),
         pass: text(formData, "imapPass") || current.imap.pass,
         mailbox: text(formData, "imapMailbox") || "INBOX",
+        allowedSenders: text(formData, "imapAllowedSenders").slice(0, 500),
       });
     }
   }
@@ -541,7 +542,7 @@ export async function approvePaymentAction(formData: FormData) {
 
   const invoice = db().prepare("SELECT * FROM invoices WHERE id = ?").get(payment.invoice_id) as unknown as Invoice;
   try {
-    confirmExistingPayment(paymentId, "admin");
+    confirmExistingPayment(paymentId, "admin", flag(formData, "partial"));
   } catch (error) {
     redirect(`/admin/invoices?error=${encodeURIComponent((error as Error).message)}`);
   }
@@ -553,7 +554,27 @@ export async function approvePaymentAction(formData: FormData) {
 export async function rejectPaymentAction(formData: FormData) {
   await requireAdmin();
   const paymentId = text(formData, "paymentId");
+  const payment = db().prepare("SELECT * FROM payments WHERE id = ?").get(paymentId) as unknown as Payment | undefined;
+  if (!payment || payment.status !== "pending") redirect("/admin/invoices?error=payment");
+
+  const day = today(getSettings().plan.timezone);
   db().prepare("UPDATE payments SET status = 'rejected' WHERE id = ? AND status = 'pending'").run(paymentId);
+
+  // A rejected member report must not leave the invoice stuck in `submitted`.
+  const remaining = db()
+    .prepare("SELECT COUNT(*) AS n FROM payments WHERE invoice_id = ? AND status = 'pending'")
+    .get(payment.invoice_id) as { n: number };
+  if (Number(remaining.n) === 0) {
+    const invoice = db()
+      .prepare("SELECT * FROM invoices WHERE id = ?")
+      .get(payment.invoice_id) as unknown as Invoice | undefined;
+    if (invoice && invoice.status === "submitted") {
+      db()
+        .prepare("UPDATE invoices SET status = ?, submitted_at = NULL WHERE id = ? AND status = 'submitted'")
+        .run(invoice.due_date < day ? "overdue" : "awaiting_payment", invoice.id);
+    }
+  }
+
   event(null, "payment.rejected", { paymentId });
   revalidatePath("/admin/invoices");
   redirect("/admin/invoices?saved=rejected");

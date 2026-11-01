@@ -96,6 +96,7 @@ settings if you want anonymous pulls.
 | `DATA_DIR` / `DATABASE_PATH` | optional | Defaults `/data` and `/data/applecare.db` in Docker. |
 | `INTERNAL_SCHEDULER` | optional | `true` runs the daily job in-process every 6 h. |
 | `COOKIE_SECURE` | optional | `true`/`false` override; otherwise auto-detected. |
+| `TRUST_PROXY_HOPS` | optional | How many proxies to trust in `X-Forwarded-For` (default 1). Set 0 to ignore it. |
 | `FX_FALLBACK_RATE` | optional | Last-resort USD→CNY rate (default 7.2). |
 
 ---
@@ -258,6 +259,12 @@ curl -X POST https://plan.example.com/api/storage/update \
   -H "Content-Type: application/json" \
   -d '{ "email": "sam@example.com", "usedGb": 342.5 }'
 ```
+
+Want to test the undocumented `setup/web/family/getFamilyDetails` and
+`setup/ws/1/storageUsageInfo` endpoints yourself? `contrib/icloud-probe` prints exactly what
+they return for your account. Source reading says: family identities + the organizer's
+aggregate usage, no per-member GB — the probe confirms or disproves it empirically. It is
+unsupported, keeps credentials local, and is not part of the image.
 
 The endpoint rejects values above the whole pool (a common bytes-vs-GB typo) and returns the
 quota and percentage.

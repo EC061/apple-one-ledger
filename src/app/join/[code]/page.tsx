@@ -16,6 +16,9 @@ const ERRORS: Record<string, string> = {
   exists: "That email is already on this plan. Sign in with your access code instead.",
   full: "All seats are taken. Ask the admin to free one up.",
   rate: "Too many attempts from this network. Try again later.",
+  invite: "That invite is no longer valid.",
+  used: "That invite has already been used.",
+  expired: "That invite has expired.",
 };
 
 export default async function JoinPage({

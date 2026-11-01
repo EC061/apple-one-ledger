@@ -70,7 +70,9 @@ export default async function MembersPage({
     <>
       <AccessCodeFlash />
 
-      {params.error ? <Notice tone="error">{ERRORS[params.error] ?? params.error}</Notice> : null}
+      {params.error ? (
+        <Notice tone="error">{ERRORS[params.error] ?? "Something went wrong. Please try again."}</Notice>
+      ) : null}
       {params.created ? <Notice tone="ok">Member created. Send them the access code above.</Notice> : null}
       {params.reset ? <Notice tone="ok">Access code reset. Any existing sessions were signed out.</Notice> : null}
       {params.saved ? <Notice tone="ok">Saved.</Notice> : null}
@@ -133,7 +135,7 @@ export default async function MembersPage({
                             <div className="small">
                               {state.reported ? `${state.usedGb.toFixed(1)} / ${state.quotaGb.toFixed(0)} GB` : "Not reported"}
                             </div>
-                            <div className="meter" style={{ width: 90 }}>
+                            <div className="meter" style={{ width: 90 }} aria-hidden="true">
                               <span
                                 className={state.over ? "bad" : state.percent >= settings.storage.warnPercent ? "warn" : ""}
                                 style={{ width: `${Math.min(state.percent, 100)}%` }}

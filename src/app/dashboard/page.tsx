@@ -65,7 +65,9 @@ export default async function DashboardPage({
             </Notice>
           ) : null}
           {params.saved === "profile" ? <Notice tone="ok">Profile updated.</Notice> : null}
-          {params.error ? <Notice tone="error">{ERRORS[params.error] ?? params.error}</Notice> : null}
+          {params.error ? (
+            <Notice tone="error">{ERRORS[params.error] ?? "Something went wrong. Please try again."}</Notice>
+          ) : null}
 
           <div className="row-between">
             <div>
@@ -125,7 +127,7 @@ export default async function DashboardPage({
                   {storage.reported ? `${storage.percent.toFixed(0)}% used` : "no data"}
                 </span>
               </div>
-              <div className="meter">
+              <div className="meter" aria-hidden="true">
                 <span
                   className={storage.over ? "bad" : storage.percent >= settings.storage.warnPercent ? "warn" : ""}
                   style={{ width: `${Math.min(storage.percent, 100)}%` }}
@@ -209,6 +211,9 @@ export default async function DashboardPage({
                         <div className="price-note">
                           {termIndex <= 1 ? "First-term price" : "Renewal price"} ·{" "}
                           {formatMoney(price / plan.months)}/month
+                        </div>
+                        <div className="price-renew">
+                          Renews at {formatMoney(priceFor(key, termIndex + 1, settings.pricing))}
                         </div>
                         <div className="spacer" style={{ minHeight: 10 }} />
                         <SubmitButton className="btn btn-primary btn-block" pending="Creating invoice…">

@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { db, newId, nowIso, event } from "@/lib/db";
+import { db, newId, nowIso, event, tx } from "@/lib/db";
 import {
   adminCodeConfigured,
   createAdmin,
@@ -91,38 +91,40 @@ export async function joinAction(formData: FormData) {
   const limit = await attemptKey("join");
   if (!rateLimit(limit.key, 12, 60 * 60_000)) redirect(`${back}?error=rate`);
 
-  const invite = db().prepare("SELECT * FROM invites WHERE code = ?").get(code) as unknown as Invite | undefined;
-  if (!invite || invite.revoked_at) redirect("/login?error=invite");
-  if (invite.used_at) redirect("/login?error=used");
-  if (invite.expires_at && invite.expires_at < today(getSettings().plan.timezone)) {
-    redirect("/login?error=expired");
-  }
-
   if (name.length < 2 || name.length > 60) redirect(`${back}?error=name`);
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) redirect(`${back}?error=email`);
 
   const settings = getSettings();
-  if (seatsUsed() >= seatCapacity()) redirect(`${back}?error=full`);
-
-  const existing = db().prepare("SELECT 1 FROM users WHERE lower(email) = ?").get(email);
-  if (existing) redirect(`${back}?error=exists`);
-
   const accessCode = generateCode();
   const userId = newId();
   const now = nowIso();
 
+  // Capacity, invite validity and member creation must commit together:
+  // otherwise a crash can leave an active member with a reusable invite.
   try {
-    db()
-      .prepare(
-        `INSERT INTO users (id, role, name, email, access_code_hash, status, created_at, updated_at)
-         VALUES (?, 'member', ?, ?, ?, 'active', ?, ?)`,
-      )
-      .run(userId, name, email, hashAccessCode(accessCode), now, now);
-    db()
-      .prepare("UPDATE invites SET used_at = ?, used_by = ? WHERE code = ?")
-      .run(now, userId, code);
-  } catch {
-    redirect(`${back}?error=exists`);
+    tx(() => {
+      const invite = db().prepare("SELECT * FROM invites WHERE code = ?").get(code) as unknown as Invite | undefined;
+      if (!invite || invite.revoked_at) throw new Error("invite");
+      if (invite.used_at) throw new Error("used");
+      if (invite.expires_at && invite.expires_at < today(settings.plan.timezone)) throw new Error("expired");
+      if (seatsUsed() >= seatCapacity()) throw new Error("full");
+      if (db().prepare("SELECT 1 FROM users WHERE lower(email) = ?").get(email)) throw new Error("exists");
+
+      // Insert first: invites.used_by has a foreign key to users(id).
+      db()
+        .prepare(
+          `INSERT INTO users (id, role, name, email, access_code_hash, status, created_at, updated_at)
+           VALUES (?, 'member', ?, ?, ?, 'active', ?, ?)`,
+        )
+        .run(userId, name, email, hashAccessCode(accessCode), now, now);
+
+      const consumed = db()
+        .prepare("UPDATE invites SET used_at = ?, used_by = ? WHERE code = ? AND used_at IS NULL")
+        .run(now, userId, code);
+      if (Number(consumed.changes) !== 1) throw new Error("used");
+    });
+  } catch (error) {
+    redirect(`${back}?error=${encodeURIComponent((error as Error).message)}`);
   }
 
   event(userId, "invite.accepted", { invite: code, seats: settings.plan.seats });

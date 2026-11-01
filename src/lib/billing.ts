@@ -292,7 +292,11 @@ export function markOverdue(now = today(getSettings().plan.timezone)): number {
  * invoice paid in one transaction. Unlike markInvoicePaid this does NOT insert
  * a second payment record.
  */
-export function confirmExistingPayment(paymentId: string, actor: string | null): Invoice {
+export function confirmExistingPayment(
+  paymentId: string,
+  actor: string | null,
+  allowPartial = false,
+): Invoice {
   const payment = db().prepare("SELECT * FROM payments WHERE id = ?").get(paymentId) as unknown as Payment | undefined;
   if (!payment) throw new BillingError("Payment not found.");
   if (payment.status !== "pending") throw new BillingError("This payment was already handled.");
@@ -301,6 +305,15 @@ export function confirmExistingPayment(paymentId: string, actor: string | null):
     .prepare("SELECT * FROM invoices WHERE id = ?")
     .get(payment.invoice_id) as unknown as Invoice | undefined;
   if (!invoice) throw new BillingError("Invoice not found.");
+
+  const settings = getSettings();
+  const amountUsd = Number(payment.amount_usd ?? 0);
+  if (!allowPartial && amountUsd + settings.automation.toleranceUsd < invoice.amount_usd) {
+    throw new BillingError(
+      `Recorded ${amountUsd.toFixed(2)} USD against ${invoice.amount_usd.toFixed(2)} USD. ` +
+        "Tick “accept partial payment” to approve it anyway.",
+    );
+  }
 
   return tx(() => {
     const at = nowIso();

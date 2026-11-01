@@ -1,5 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
+import { isHttps } from "./url";
 
 /**
  * Hand a freshly generated access code to the next page view.
@@ -11,6 +12,7 @@ export async function setAccessCodeFlash(code: string) {
   store.set("a1_access_code", code, {
     httpOnly: false,
     sameSite: "lax",
+    secure: await isHttps(),
     path: "/",
     maxAge: 300,
   });

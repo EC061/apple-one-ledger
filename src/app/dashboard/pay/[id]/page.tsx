@@ -66,7 +66,9 @@ export default async function PayPage({
             <StatusBadge status={invoice.status} />
           </div>
 
-          {error ? <Notice tone="error">{ERRORS[error] ?? error}</Notice> : null}
+          {error ? (
+            <Notice tone="error">{ERRORS[error] ?? "Something went wrong. Please try again."}</Notice>
+          ) : null}
 
           {invoice.status === "submitted" ? (
             <Notice tone="warn">
@@ -82,8 +84,8 @@ export default async function PayPage({
           ) : null}
           {invoice.status === "void" ? <Notice tone="error">This invoice was voided and no payment is due.</Notice> : null}
 
-          <div className="split">
-            <div className="stack">
+          <div className="split pay-split">
+            <div className="stack pay-main">
               <div className="card">
                 <div className="card-body">
                   <div className="row-between">
@@ -94,6 +96,12 @@ export default async function PayPage({
                       </div>
                       <div className="muted small">
                         or ¥{invoice.amount_cny.toFixed(2)} at 1 USD = {invoice.fx_rate.toFixed(4)} CNY
+                      </div>
+                      <div className="small" style={{ marginTop: 8 }}>
+                        <strong>
+                          Renews at {formatMoney(priceFor(invoice.plan, invoice.term_index + 1, settings.pricing))}
+                        </strong>{" "}
+                        {PLANS[invoice.plan].label.toLowerCase()} from {formatDate(invoice.period_end)}
                       </div>
                     </div>
                     <div style={{ textAlign: "right" }}>
@@ -154,7 +162,12 @@ export default async function PayPage({
                     <h2>Report your payment</h2>
                   </div>
                   <div className="card-body">
-                    {configuredMethods.length === 0 ? (
+                    {isAdminView ? (
+                      <Notice>
+                        You are viewing this as the admin. Use{" "}
+                        <Link href="/admin/invoices">Invoices → Mark paid</Link> to record it.
+                      </Notice>
+                    ) : configuredMethods.length === 0 ? (
                       <Notice tone="warn">
                         The admin has not published payment details yet. Ask them to fill in WeChat / Alipay / Venmo /
                         Zelle under Admin → Settings → Payment details.
@@ -188,7 +201,7 @@ export default async function PayPage({
               )}
             </div>
 
-            <div className="stack">
+            <div className="stack pay-destinations">
               <div className="card">
                 <div className="card-head">
                   <h2>Where to send it</h2>
@@ -200,7 +213,7 @@ export default async function PayPage({
                     </div>
                   ) : null}
 
-                  {methodRows.map((item) => (
+                  {methodRows.filter((item) => item.value).map((item) => (
                     <div key={item.key} style={{ borderBottom: "1px solid var(--line)", paddingBottom: 10 }}>
                       <div className="row-between">
                         <span className="strong small">{item.label}</span>
@@ -228,7 +241,7 @@ export default async function PayPage({
               </div>
 
               <div className="card card-pad">
-                <h3>Today&apos;s rate</h3>
+                <h3>Locked rate</h3>
                 <p className="muted small" style={{ marginBottom: 0 }}>
                   CNY amounts use the USD→CNY rate on the day the invoice was issued ({invoice.fx_date}). This one is
                   locked at <strong>1 USD = {invoice.fx_rate.toFixed(4)} CNY</strong>, so what you see is what you pay.

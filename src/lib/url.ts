@@ -15,10 +15,15 @@ export async function getBaseUrl(): Promise<string> {
   const configured = process.env.APP_URL?.trim();
   if (configured) return configured.replace(/\/+$/, "");
 
-  const h = await headers();
-  const proto = firstValue(h.get("x-forwarded-proto")) || "http";
-  const host = firstValue(h.get("x-forwarded-host")) || firstValue(h.get("host")) || "localhost:3000";
-  return `${proto}://${host}`;
+  try {
+    const h = await headers();
+    const proto = firstValue(h.get("x-forwarded-proto")) || "http";
+    const host = firstValue(h.get("x-forwarded-host")) || firstValue(h.get("host")) || "localhost:3000";
+    return `${proto}://${host}`;
+  } catch {
+    // Background job without a request (scheduler + no APP_URL).
+    return `http://127.0.0.1:${process.env.PORT || 3000}`;
+  }
 }
 
 export async function isHttps(): Promise<boolean> {
@@ -36,8 +41,23 @@ function firstValue(value: string | null): string {
 }
 
 export function requestMeta() {
-  return headers().then((h) => ({
-    ip: firstValue(h.get("x-forwarded-for")) || h.get("x-real-ip") || null,
-    userAgent: h.get("user-agent"),
-  }));
+  return headers()
+    .then((h) => ({
+      ip: clientIp(h.get("x-forwarded-for"), h.get("x-real-ip")),
+      userAgent: h.get("user-agent"),
+    }))
+    .catch(() => ({ ip: null, userAgent: null }));
+}
+
+/**
+ * X-Forwarded-For is client-controlled unless a trusted proxy appends to it.
+ * TRUST_PROXY_HOPS=1 (default) takes the right-most entry, which is the one
+ * your proxy added. Set 0 to ignore the header entirely.
+ */
+function clientIp(forwarded: string | null, realIp: string | null): string | null {
+  const hops = Number(process.env.TRUST_PROXY_HOPS ?? 1);
+  if (!Number.isFinite(hops) || hops <= 0) return realIp || null;
+  if (!forwarded) return realIp || null;
+  const parts = forwarded.split(",").map((value) => value.trim()).filter(Boolean);
+  return parts[parts.length - Math.min(hops, parts.length)] || realIp || null;
 }

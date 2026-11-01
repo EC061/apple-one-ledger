@@ -43,9 +43,9 @@ const schema = z.object({
  * a different payload under the same id returns 409.
  */
 export async function POST(request: Request) {
-  const token = process.env.STORAGE_TOKEN || process.env.INGEST_TOKEN;
+  const token = process.env.STORAGE_TOKEN;
   if (!bearerAuthorized(request, token)) {
-    return json({ ok: false, error: "Unauthorized. Send STORAGE_TOKEN as a Bearer token." }, 401);
+    return json({ ok: false, error: "Unauthorized. STORAGE_TOKEN must be set and sent as a Bearer token." }, 401);
   }
 
   let payload: unknown;

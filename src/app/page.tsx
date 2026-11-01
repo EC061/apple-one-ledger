@@ -64,6 +64,9 @@ export default async function HomePage() {
                 <h2>Cost basis</h2>
                 <p className="muted small" style={{ marginBottom: 0 }}>
                   {formatMoney(pricing.monthlyTotalUsd)} per month for the whole plan, split {plan.seats} ways.
+                  Term prices are rounded to whole dollars, which is why {formatMoney(pricing.firstTerm.quarterly)}{" "}
+                  per quarter works out to {formatMoney(pricing.firstTerm.quarterly / 3)}/month rather than exactly{" "}
+                  {formatMoney(seatCost)}.
                 </p>
               </div>
               <div style={{ textAlign: "right" }}>

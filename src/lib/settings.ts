@@ -74,6 +74,8 @@ export interface ImapSettings {
   user: string;
   pass: string;
   mailbox: string;
+  /** Comma-separated sender allowlist; IMAP polling refuses to run when empty. */
+  allowedSenders: string;
 }
 
 export interface Settings {
@@ -144,6 +146,7 @@ export const DEFAULT_SETTINGS: Settings = {
     user: "",
     pass: "",
     mailbox: "INBOX",
+    allowedSenders: "",
   },
   storage: {
     enabled: true,

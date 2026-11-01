@@ -16,7 +16,7 @@ export default function NavLinks({ items }: { items: NavItem[] }) {
       {items.map((item) => {
         const active = item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
-          <Link key={item.href} href={item.href} className={active ? "active" : undefined}>
+          <Link key={item.href} href={item.href} className={active ? "active" : undefined} aria-current={active ? "page" : undefined}>
             {item.label}
           </Link>
         );

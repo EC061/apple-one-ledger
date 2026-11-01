@@ -79,14 +79,19 @@ export function ingestPayment(payload: IngestPayload): IngestResult {
   }
 
   if (payload.txRef) {
-    const seen = db().prepare("SELECT 1 FROM payments WHERE tx_ref = ?").get(payload.txRef);
+    const seen = db()
+      .prepare("SELECT status FROM payments WHERE tx_ref = ?")
+      .get(payload.txRef) as { status: string } | undefined;
     if (seen) {
       return {
         ok: true,
         matched: true,
         invoiceId: invoice.id,
-        status: "duplicate",
-        message: "This transaction was already recorded.",
+        status: seen.status === "pending" ? "review" : "duplicate",
+        message:
+          seen.status === "pending"
+            ? "A matching payment report is already pending review; approve it in the admin console."
+            : "This transaction was already recorded.",
       };
     }
   }
@@ -187,6 +192,15 @@ export async function pollImap(): Promise<{ scanned: number; matched: number }> 
   const { ImapFlow } = await import("imapflow");
   const { simpleParser } = await import("mailparser");
 
+  const allowedSenders = (imap.allowedSenders || "")
+    .split(/[,\n]/)
+    .map((value: string) => value.trim().toLowerCase())
+    .filter(Boolean);
+  if (allowedSenders.length === 0) {
+    event("imap", "poll.skipped", { reason: "no allowed senders configured" });
+    return { scanned: 0, matched: 0 };
+  }
+
   const client = new ImapFlow({
     host: imap.host,
     port: imap.port,
@@ -211,24 +225,28 @@ export async function pollImap(): Promise<{ scanned: number; matched: number }> 
       scanned += 1;
 
       const parsed = await simpleParser(message.source);
+      const from = (parsed.from?.text || "").toLowerCase();
+      if (!allowedSenders.some((sender: string) => from.includes(sender))) continue;
+
       const text = `${parsed.subject || ""}\n${parsed.text || ""}`;
       const references = new Set(
         (text.match(REFERENCE_PATTERN) || []).map((value) => normalizeReference(value)),
       );
       const amount = guessAmount(text);
 
-      if (references.size && amount && amount.amount > 0) {
-        for (const reference of references) {
-          const result = ingestPayment({
-            reference,
-            amount: amount.amount,
-            currency: amount.currency,
-            method: guessMethod(text),
-            txRef: `imap-${uid}-${reference}`,
-            note: parsed.subject || undefined,
-          });
-          if (result.status === "paid") matched += 1;
-        }
+      // One email must identify exactly one invoice; otherwise skip it and
+      // leave it unread so a human can look at it.
+      if (references.size === 1 && amount && amount.amount > 0) {
+        const reference = [...references][0];
+        const result = ingestPayment({
+          reference,
+          amount: amount.amount,
+          currency: amount.currency,
+          method: guessMethod(text),
+          txRef: `imap-${uid}-${reference}`,
+          note: parsed.subject || undefined,
+        });
+        if (result.status === "paid") matched += 1;
         await client.messageFlagsAdd(String(uid), ["\\Seen"], { uid: true });
       }
     }

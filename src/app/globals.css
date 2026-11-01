@@ -463,7 +463,6 @@ main.grow {
   font-family: inherit;
   font-size: 14.5px;
   padding: 9px 11px;
-  outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .input:focus,
@@ -474,7 +473,7 @@ main.grow {
 }
 .input::placeholder,
 .textarea::placeholder {
-  color: #9aa9a1;
+  color: #7d8f85;
 }
 .textarea {
   min-height: 84px;
@@ -575,7 +574,7 @@ table.data tr:hover td {
 }
 .badge-void {
   background: #f1f3f2;
-  color: #6b7c74;
+  color: #56675e;
   border-color: #e0e5e2;
 }
 .badge-warn {
@@ -842,6 +841,14 @@ table.data tr:hover td {
 @media (max-width: 880px) {
   .split {
     grid-template-columns: 1fr;
+  }
+  /* On phones the member must see where to pay before the confirm form. */
+  .pay-split {
+    display: flex;
+    flex-direction: column;
+  }
+  .pay-split .pay-destinations {
+    order: -1;
   }
 }
 

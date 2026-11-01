@@ -30,9 +30,9 @@ const schema = z
  * phone shortcut, or a script that reads the Family Sharing screen.
  */
 export async function POST(request: Request) {
-  const token = process.env.STORAGE_TOKEN || process.env.INGEST_TOKEN;
+  const token = process.env.STORAGE_TOKEN;
   if (!bearerAuthorized(request, token)) {
-    return json({ ok: false, error: "Unauthorized. Set STORAGE_TOKEN (or INGEST_TOKEN) and send it as a Bearer token." }, 401);
+    return json({ ok: false, error: "Unauthorized. STORAGE_TOKEN must be set and sent as a Bearer token." }, 401);
   }
   if (!getSettings().storage.enabled) {
     return json({ ok: false, error: "Storage tracking is disabled in settings." }, 403);
