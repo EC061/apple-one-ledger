@@ -17,11 +17,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Docker references must be lowercase; GitHub logins are not.
-      - name: Compute lowercase image name
-        id: image
-        run: echo "name=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
-
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -47,6 +42,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+
+      # Docker references must be lowercase; GitHub logins are not.
+      - name: Compute lowercase image name
+        id: image
+        run: |
+          name="${GITHUB_REPOSITORY,,}"
+          test -n "$name"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
