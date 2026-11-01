@@ -38,7 +38,7 @@ src/instrumentation.ts     in-process scheduler (6 h)
 | `users` | admin + members; scrypt password hash, status, paid-through |
 | `sessions` | hashed session tokens, 30-day default lifetime |
 | `invites` | one-time, expiring seat tokens |
-| `invoices` | term, period, amount USD/CNY, locked FX, status, reference |
+| `invoices` | term, period, amount USD, CNY reference, status, reference |
 | `payments` | member reports / admin confirmations, pending-confirmed-rejected |
 | `settings` | JSON sections: plan, pricing, payments, smtp, fx, reminders, app |
 | `fx_rates` | daily USD→CNY snapshots |

@@ -6,6 +6,7 @@ import { getSettings } from "@/lib/settings";
 import { formatDate } from "@/lib/dates";
 import { PLANS } from "@/lib/pricing";
 import { paymentDestinations } from "@/lib/payment-destinations";
+import { getCurrentRate } from "@/lib/fx";
 import TopBar from "@/components/TopBar";
 import {
   PayActionPanel,
@@ -42,6 +43,11 @@ export default async function PayPage({
   const pay = settings.payments;
   const isAdminView = user.role === "admin";
 
+  const isOpen = invoice.status === "awaiting_payment" || invoice.status === "overdue";
+  const currentRate = isOpen ? await getCurrentRate().catch(() => null) : null;
+  const fxRate = currentRate && currentRate.source !== "fallback" ? currentRate.rate : invoice.fx_rate;
+  const amountCny = Math.round(invoice.amount_usd * (fxRate || 1) * 100) / 100;
+
   const methodRows = paymentDestinations(pay);
   const configuredMethods = methodRows
     .filter((row) => row.value || row.qr)
@@ -74,7 +80,7 @@ export default async function PayPage({
           <div className="split pay-split">
             <div className="stack pay-main">
               <div className="pay-amount">
-                <PayAmountCard invoice={invoice} settings={settings} />
+                <PayAmountCard invoice={invoice} settings={settings} amountCny={amountCny} fxRate={fxRate} />
               </div>
 
               <div className="pay-action">
@@ -82,11 +88,19 @@ export default async function PayPage({
                   invoice={invoice}
                   isAdminView={isAdminView}
                   configuredMethods={configuredMethods}
+                  amountCny={amountCny}
+                  fxRate={fxRate}
                 />
               </div>
             </div>
 
-            <PayDestinations settings={settings} invoice={invoice} methodRows={methodRows} />
+            <PayDestinations
+              settings={settings}
+              invoice={invoice}
+              methodRows={methodRows}
+              fxRate={fxRate}
+              fxDate={currentRate && currentRate.source !== "fallback" ? currentRate.date : invoice.fx_date}
+            />
           </div>
         </div>
       </main>

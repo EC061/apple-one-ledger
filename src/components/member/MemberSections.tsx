@@ -71,7 +71,7 @@ function OpenInvoicePanel({
                   <dd>
                     {formatMoney(open.amount_usd)}{" "}
                     <span className="muted">
-                      · ¥{open.amount_cny.toFixed(2)} @ {open.fx_rate.toFixed(4)}
+                      · ref ¥{open.amount_cny.toFixed(2)} @ {open.fx_rate.toFixed(4)}
                     </span>
                   </dd>
                   <dt>Term</dt>

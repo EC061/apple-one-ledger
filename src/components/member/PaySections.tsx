@@ -78,20 +78,33 @@ export function PayDestinations({
   settings,
   invoice,
   methodRows,
+  fxRate,
+  fxDate,
 }: {
   settings: Settings;
   invoice: Invoice;
   methodRows: PaymentDestination[];
+  fxRate: number;
+  fxDate: string;
 }) {
   return (
             <div className="stack pay-destinations">
               <PaymentMethodsCard settings={settings} methodRows={methodRows} reference={invoice.reference} />
 
               <div className="card card-pad">
-                <h3>Locked rate</h3>
+                <h3>Payment-day rate</h3>
                 <p className="muted small" style={{ marginBottom: 0 }}>
-                  CNY amounts use the USD→CNY rate on the day the invoice was issued ({invoice.fx_date}). This one is
-                  locked at <strong>1 USD = {invoice.fx_rate.toFixed(4)} CNY</strong>, so what you see is what you pay.
+                  {invoice.status === "paid" ? (
+                    <>
+                      This invoice was settled at <strong>1 USD = {fxRate.toFixed(4)} CNY</strong> ({fxDate}).
+                    </>
+                  ) : (
+                    <>
+                      CNY uses the USD→CNY rate on the day the payment is recorded. The rate shown is{" "}
+                      <strong>1 USD = {fxRate.toFixed(4)} CNY</strong> ({fxDate}); the CNY figure above is an
+                      estimate until then.
+                    </>
+                  )}
                 </p>
               </div>
 
@@ -125,7 +138,17 @@ export function PayStatusNotices({ invoice, settings }: { invoice: Invoice; sett
 }
 
 
-export function PayAmountCard({ invoice, settings }: { invoice: Invoice; settings: Settings }) {
+export function PayAmountCard({
+  invoice,
+  settings,
+  amountCny,
+  fxRate,
+}: {
+  invoice: Invoice;
+  settings: Settings;
+  amountCny: number;
+  fxRate: number;
+}) {
   return (
               <div className="card">
                 <div className="card-body">
@@ -136,7 +159,7 @@ export function PayAmountCard({ invoice, settings }: { invoice: Invoice; setting
                         {formatMoney(invoice.amount_usd)}
                       </div>
                       <div className="muted small">
-                        or ¥{invoice.amount_cny.toFixed(2)} at 1 USD = {invoice.fx_rate.toFixed(4)} CNY
+                        or {invoice.status === "paid" ? "" : "≈"}¥{amountCny.toFixed(2)} at 1 USD = {fxRate.toFixed(4)} CNY
                       </div>
                       <div className="small" style={{ marginTop: 8 }}>
                         <strong>
@@ -176,7 +199,7 @@ export function PayAmountCard({ invoice, settings }: { invoice: Invoice; setting
                     </dd>
                     <dt>FX rate</dt>
                     <dd>
-                      1 USD = {invoice.fx_rate.toFixed(4)} CNY · locked {invoice.fx_date}
+                      1 USD = {fxRate.toFixed(4)} CNY · payment-day reference
                     </dd>
                     <dt>Method</dt>
                     <dd>
@@ -198,10 +221,14 @@ export function PayActionPanel({
   invoice,
   isAdminView,
   configuredMethods,
+  amountCny,
+  fxRate,
 }: {
   invoice: Invoice;
   isAdminView: boolean;
   configuredMethods: { value: string; label: string }[];
+  amountCny: number;
+  fxRate: number;
 }) {
   const canPay = invoice.status === "awaiting_payment" || invoice.status === "overdue";
   return (
@@ -226,8 +253,8 @@ export function PayActionPanel({
                       <PaymentForm
                         invoiceId={invoice.id}
                         amountUsd={invoice.amount_usd}
-                        amountCny={invoice.amount_cny}
-                        rate={invoice.fx_rate}
+                        amountCny={amountCny}
+                        rate={fxRate}
                         method={invoice.method}
                         methods={configuredMethods}
                       />

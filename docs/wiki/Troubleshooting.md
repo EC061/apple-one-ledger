@@ -32,10 +32,11 @@ public `https://` URL.
 
 ## CNY amount looks wrong
 
-The rate is locked when the invoice is issued. frankfurter.app publishes the ECB reference rate
-once per business day (weekends reuse Friday). Use a manual rate under Settings if you need to
-match the rate WeChat/Alipay actually charged. Invoice creation refuses to proceed if no rate is
-available at all.
+CNY uses the rate on the day the payment is recorded, not the invoice date. The invoice's CNY
+figure is a reference. frankfurter.app publishes the ECB reference rate once per business day
+(weekends reuse Friday). Use a manual rate under Settings if you need to match the rate
+WeChat/Alipay actually charged. Invoice creation refuses to proceed if no rate is available at
+all.
 
 ## `docker pull ghcr.io/...` returns 401
 

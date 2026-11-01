@@ -8,7 +8,7 @@ Six seats, quarterly/half-year/annual terms, USD or CNY, and email reminders.
 - **Seats**: 6 total, invite-token signup, email + password login, admin can disable/restore a seat.
 - **Terms**: quarterly / half-year / annual; first term $45 / $90 / $180, renewals $51 / $96 / $180.
 - **Cost basis**: $89.94 per month ÷ 6 = **$14.99 per seat**.
-- **Payments**: WeChat Pay, Alipay, Venmo, Zelle; member reports, admin approves; CNY locks the daily USD→CNY rate.
+- **Payments**: WeChat Pay, Alipay, Venmo, Zelle; member reports, admin approves; CNY uses the payment-day USD→CNY rate.
 - **Notifications**: one 7-day advance notice (member + admin) and one 1-day-late admin notice per invoice; receipts.
 - **Admin seat**: always reserved, never billed; the other five seats are billed per term.
 - **Public page**: bilingual English/中文, dark by default, live pricing and services.

@@ -50,7 +50,7 @@ export function OpenPaymentsCard({ open, settings }: { open: OpenInvoice[]; sett
                     </td>
                     <td className="right">
                       {formatMoney(invoice.amount_usd)}
-                      <div className="muted small">¥{invoice.amount_cny.toFixed(2)}</div>
+                      <div className="muted small">ref ¥{invoice.amount_cny.toFixed(2)}</div>
                     </td>
                     <td className="small">
                       {formatDate(invoice.due_date)}

@@ -103,7 +103,7 @@ export default async function InvoicesPage({
         <div>
           <h1>Invoices</h1>
           <p className="muted" style={{ marginBottom: 0 }}>
-            USD amounts with the CNY equivalent locked at issue time.
+            USD amounts with a CNY reference; the payment-day rate is final.
           </p>
         </div>
       </div>
@@ -153,7 +153,7 @@ export default async function InvoicesPage({
                     </td>
                     <td className="right">
                       {formatMoney(invoice.amount_usd)}
-                      <div className="muted small">¥{invoice.amount_cny.toFixed(2)}</div>
+                      <div className="muted small">ref ¥{invoice.amount_cny.toFixed(2)}</div>
                     </td>
                     <td>
                       <StatusBadge status={invoice.status} />
