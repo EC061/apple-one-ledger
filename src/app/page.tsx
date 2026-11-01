@@ -49,7 +49,12 @@ export default async function HomePage() {
           <ServicesSection t={t} services={settings.plan.services} quota={quota} shareCount={settings.storage.shareCount} />
           <PricingSection t={t} pricing={settings.pricing} />
           <CostBasis t={t} pricing={settings.pricing} seats={settings.plan.seats} seatCost={seatCost} />
-          <RulesSection t={t} grace={settings.plan.graceDays} dueDays={settings.plan.dueSoonDays} />
+          <RulesSection
+            t={t}
+            grace={settings.plan.graceDays}
+            dueDays={settings.plan.dueSoonDays}
+            advanceDays={settings.reminders.advanceDays}
+          />
           <PaymentsSection t={t} />
           <InfoCards t={t} pool={settings.storage.totalGb} shareCount={settings.storage.shareCount} quota={quota} seats={settings.plan.seats} />
         </div>
@@ -252,13 +257,13 @@ function CostBasis({
   );
 }
 
-function RulesSection({ t, grace, dueDays }: { t: Copy; grace: number; dueDays: number }) {
+function RulesSection({ t, grace, dueDays, advanceDays }: { t: Copy; grace: number; dueDays: number; advanceDays: number }) {
   return (
     <section id="how-it-works" className="disclosure">
       <h3>{t.rulesTitle}</h3>
       <ul>
         {t.rules.map((rule) => (
-          <li key={rule}>{fill(rule, { grace, dueDays })}</li>
+          <li key={rule}>{fill(rule, { grace, dueDays, advanceDays })}</li>
         ))}
       </ul>
     </section>

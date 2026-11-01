@@ -386,49 +386,43 @@ export async function RemindersCard() {
               <div className="field full">
                 <label className="check">
                   <input type="checkbox" name="enabled" defaultChecked={reminders.enabled} />
-                  <span>Send payment reminders automatically</span>
+                  <span>Send these two reminder emails</span>
                 </label>
               </div>
               <div className="field">
-                <label className="label" htmlFor="daysBefore">
-                  Days before due date
-                </label>
-                <input id="daysBefore" name="daysBefore" className="input" defaultValue={reminders.daysBefore.join(", ")} />
-                <span className="hint">Comma separated, e.g. 7, 3, 1.</span>
-              </div>
-              <div className="field">
-                <label className="label" htmlFor="renewalNoticeDays">
-                  Renewal notice (days before coverage ends)
+                <label className="label" htmlFor="advanceDays">
+                  Advance notice (days before due or expiry)
                 </label>
                 <input
-                  id="renewalNoticeDays"
-                  name="renewalNoticeDays"
+                  id="advanceDays"
+                  name="advanceDays"
                   type="number"
                   min={1}
                   max={60}
                   className="input"
-                  defaultValue={reminders.renewalNoticeDays}
+                  defaultValue={reminders.advanceDays}
                 />
-                <span className="hint">Sent to the member and to you when a paid-through date is this close.</span>
+                <span className="hint">One email to the member; one summary to you.</span>
               </div>
               <div className="field">
-                <label className="label" htmlFor="overdueEveryDays">
-                  Overdue reminder frequency (days)
+                <label className="label" htmlFor="lateDays">
+                  Late notice (days after due)
                 </label>
-                <input id="overdueEveryDays" name="overdueEveryDays" type="number" min={1} max={30} className="input" defaultValue={reminders.overdueEveryDays} />
+                <input
+                  id="lateDays"
+                  name="lateDays"
+                  type="number"
+                  min={1}
+                  max={60}
+                  className="input"
+                  defaultValue={reminders.lateDays}
+                />
+                <span className="hint">One email to you per invoice, to remove or contact the member.</span>
               </div>
-              <div className="field">
-                <label className="label" htmlFor="removalWarningDays">
-                  Removal warning frequency (days)
-                </label>
-                <input id="removalWarningDays" name="removalWarningDays" type="number" min={1} max={60} className="input" defaultValue={reminders.removalWarningDays} />
-              </div>
-              <div className="field" style={{ justifyContent: "flex-end" }}>
-                <label className="check">
-                  <input type="checkbox" name="adminDigest" defaultChecked={reminders.adminDigest} />
-                  <span>Send me a daily admin digest</span>
-                </label>
-              </div>
+            </div>
+            <div className="notice small">
+              That is the whole schedule: one advance notice to both sides, then one late notice to you. No
+              digest, no repeated overdue cadence.
             </div>
             <div>
               <SubmitButton className="btn btn-primary" pending="Saving…">

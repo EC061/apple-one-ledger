@@ -45,12 +45,10 @@ export interface FxSettings {
 
 export interface ReminderSettings {
   enabled: boolean;
-  daysBefore: number[];
-  overdueEveryDays: number;
-  adminDigest: boolean;
-  removalWarningDays: number;
-  /** Days before paid-through when the renewal notice goes out. */
-  renewalNoticeDays: number;
+  /** Days before due/expiry for the single advance notice. */
+  advanceDays: number;
+  /** Days after due before the admin is told to remove the seat. */
+  lateDays: number;
 }
 
 export interface AppSettings {
@@ -133,11 +131,8 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   reminders: {
     enabled: true,
-    daysBefore: [7],
-    overdueEveryDays: 1,
-    adminDigest: true,
-    removalWarningDays: 1,
-    renewalNoticeDays: 7,
+    advanceDays: 7,
+    lateDays: 1,
   },
   app: {
     sessionDays: 30,

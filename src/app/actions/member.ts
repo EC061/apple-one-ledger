@@ -5,8 +5,6 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { createInvoice, openInvoiceFor, submitInvoice, BillingError } from "@/lib/billing";
 import { getCurrentRate } from "@/lib/fx";
-import { sendInvoiceCreatedEmail } from "@/lib/email";
-import { getBaseUrl } from "@/lib/url";
 import { isPlan } from "@/lib/pricing";
 import { isPaymentMethod } from "@/lib/labels";
 import { db, nowIso, event } from "@/lib/db";
@@ -48,10 +46,6 @@ export async function createInvoiceAction(formData: FormData) {
       redirect("/dashboard?error=open");
     }
     redirect(`/dashboard?error=${encodeURIComponent(message)}`);
-  }
-
-  if (created) {
-    await sendInvoiceCreatedEmail({ user, invoice: created, baseUrl: await getBaseUrl() }).catch(() => undefined);
   }
 
   revalidatePath("/dashboard");
