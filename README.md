@@ -73,7 +73,9 @@ invites under **Invites**.
 
 ### Published image
 
-Every push to `main` and every `v*.*.*` tag builds `linux/amd64` + `linux/arm64` images:
+Every push to `main` and every `v*.*.*` tag builds `linux/amd64` + `linux/arm64` images. Each
+architecture builds on its **native** GitHub runner (`ubuntu-latest` and `ubuntu-24.04-arm`) — no
+QEMU — with a per-arch registry cache, then a merge job assembles the manifest index:
 
 ```bash
 docker pull ghcr.io/ec061/apple-one-ledger:latest
