@@ -45,6 +45,7 @@ export function daysBetween(from: string, to: string): number {
 }
 
 export function formatDate(value: string | null | undefined, timezone = "UTC"): string {
+  void timezone;
   if (!value) return "—";
   const date = parseDate(value);
   return new Intl.DateTimeFormat("en-US", {

@@ -2,7 +2,8 @@ import { z } from "zod";
 import { bearerAuthorized, json } from "@/lib/api";
 import { db, event } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { checkStorage, statusFor, updateStorage } from "@/lib/storage";
+import { after } from "next/server";
+import { checkStorage, StorageError, updateStorage } from "@/lib/storage";
 import type { User } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -57,9 +58,21 @@ export async function POST(request: Request) {
 
   if (!user) return json({ ok: false, error: "Member not found." }, 404);
 
-  const status = updateStorage(user.id, usedGb, "api");
-  const alerts = await checkStorage();
+  let status;
+  try {
+    status = updateStorage(user.id, usedGb, "api", "api");
+  } catch (error) {
+    if (error instanceof StorageError) return json({ ok: false, error: error.message }, 400);
+    throw error;
+  }
+
   event("api", "storage.ingest", { userId: user.id, usedGb, over: status.over });
+
+  // Alerts need SMTP; run them after the response so a slow mail server does
+  // not hold the request open.
+  after(async () => {
+    await checkStorage().catch(() => undefined);
+  });
 
   return json({
     ok: true,
@@ -68,7 +81,7 @@ export async function POST(request: Request) {
     quotaGb: Math.round(status.quotaGb * 100) / 100,
     percent: Math.round(status.percent * 10) / 10,
     over: status.over,
-    alertsSent: alerts.sent,
+    reportedAt: status.updatedAt,
   });
 }
 

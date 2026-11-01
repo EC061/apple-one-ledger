@@ -127,6 +127,16 @@ CREATE TABLE IF NOT EXISTS settings (
   updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS storage_readings (
+  id          TEXT PRIMARY KEY,
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  used_gb     REAL NOT NULL,
+  source      TEXT NOT NULL,
+  actor       TEXT,
+  recorded_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS storage_readings_user ON storage_readings(user_id, recorded_at);
+
 CREATE TABLE IF NOT EXISTS fx_rates (
   date       TEXT PRIMARY KEY,
   rate       REAL NOT NULL,

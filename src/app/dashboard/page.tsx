@@ -100,8 +100,12 @@ export default async function DashboardPage({
             />
             <Stat
               label="Storage"
-              value={`${storage.usedGb.toFixed(0)} GB`}
-              sub={`of ${storage.quotaGb.toFixed(0)} GB share (${storage.percent.toFixed(0)}%)`}
+              value={storage.reported ? `${storage.usedGb.toFixed(0)} GB` : "Not reported"}
+              sub={
+                storage.reported
+                  ? `of ${storage.quotaGb.toFixed(0)} GB share (${storage.percent.toFixed(0)}%)`
+                  : "Waiting for the admin to report usage"
+              }
               tone={storage.over ? "bad" : storage.percent >= settings.storage.warnPercent ? "warn" : undefined}
             />
           </div>
@@ -112,12 +116,12 @@ export default async function DashboardPage({
                 <div>
                   <h3>Your storage share</h3>
                   <p className="muted small" style={{ marginBottom: 0 }}>
-                    {settings.storage.totalGb} GB family pool split {settings.plan.seats} ways ={" "}
-                    {storage.quotaGb.toFixed(0)} GB each
+                    {settings.storage.totalGb} GB family pool split {settings.storage.shareCount} ways ={" "}
+                    {storage.quotaGb.toFixed(0)} GB each · fair-share guideline, not a hard cap
                   </p>
                 </div>
                 <span className={`badge ${storage.over ? "badge-overdue" : storage.percent >= settings.storage.warnPercent ? "badge-warn" : "badge-paid"}`}>
-                  {storage.percent.toFixed(0)}% used
+                  {storage.reported ? `${storage.percent.toFixed(0)}% used` : "no data"}
                 </span>
               </div>
               <div className="meter">
@@ -128,13 +132,13 @@ export default async function DashboardPage({
               </div>
               <div className="row-between small muted">
                 <span>
-                  {storage.usedGb.toFixed(1)} GB of {storage.quotaGb.toFixed(1)} GB
+                  {storage.reported ? `${storage.usedGb.toFixed(1)} GB of ${storage.quotaGb.toFixed(1)} GB` : "No reading yet"}
                 </span>
                 <span>
                   {storage.over
-                    ? "Over your share — free up space to stay within the pool."
+                    ? "Over your fair share — please free up space."
                     : storage.updatedAt
-                      ? `Updated ${formatDateTime(storage.updatedAt, settings.plan.timezone)}`
+                      ? `Updated ${formatDateTime(storage.updatedAt, settings.plan.timezone)}${storage.stale ? " · outdated" : ""}`
                       : "Not reported yet"}
                 </span>
               </div>

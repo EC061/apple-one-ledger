@@ -28,6 +28,7 @@ const ERRORS: Record<string, string> = {
   missing: "Member not found.",
   date: "Use a YYYY-MM-DD date.",
   storage: "Enter storage usage in GB (0 or more).",
+  admin: "The admin account cannot be removed.",
 };
 
 interface Row {
@@ -130,7 +131,7 @@ export default async function MembersPage({
                         return (
                           <>
                             <div className="small">
-                              {state.usedGb.toFixed(1)} / {state.quotaGb.toFixed(0)} GB
+                              {state.reported ? `${state.usedGb.toFixed(1)} / ${state.quotaGb.toFixed(0)} GB` : "Not reported"}
                             </div>
                             <div className="meter" style={{ width: 90 }}>
                               <span

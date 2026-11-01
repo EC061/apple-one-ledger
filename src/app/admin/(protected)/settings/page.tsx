@@ -450,8 +450,9 @@ export default async function SettingsPage({
         </div>
         <div className="card-body stack">
           <div className="notice">
-            <strong>How usage gets in.</strong> Apple does not publish an API for family member iCloud storage, and the
-            organizer can only see it on-device. So usage is <em>reported</em>: enter it per member under{" "}
+            <strong>How usage gets in.</strong> Apple does not publish an API for family member iCloud storage. The
+            organizer sees it in Settings → Family → iCloud+ (and on iCloud.com), but there is nothing to poll. So usage
+            is <em>reported</em>: enter it per member under{" "}
             <Link href="/admin/members">Members</Link>, or POST {"{ email, usedGb }"} to{" "}
             <span className="mono">{baseUrl}/api/storage/update</span> with your{" "}
             <span className="mono">INGEST_TOKEN</span>. When someone exceeds their share, both they and you get an
@@ -475,6 +476,36 @@ export default async function SettingsPage({
                 <span className="hint">Apple advertises 2 TB. Use 2000 or 2048 depending on how you count it.</span>
               </div>
               <div className="field">
+                <label className="label" htmlFor="shareCount">
+                  People sharing the pool
+                </label>
+                <input
+                  id="shareCount"
+                  name="shareCount"
+                  type="number"
+                  min={1}
+                  max={12}
+                  className="input"
+                  defaultValue={storage.shareCount}
+                />
+                <span className="hint">Usually 6. A billing-only admin who is not in the Apple family should not count.</span>
+              </div>
+              <div className="field">
+                <label className="label" htmlFor="maxAgeDays">
+                  Treat readings older than (days) as stale
+                </label>
+                <input
+                  id="maxAgeDays"
+                  name="maxAgeDays"
+                  type="number"
+                  min={7}
+                  max={365}
+                  className="input"
+                  defaultValue={storage.maxAgeDays}
+                />
+                <span className="hint">Stale values are shown as outdated and never trigger email.</span>
+              </div>
+              <div className="field">
                 <label className="label" htmlFor="warnPercent">
                   Warn at % of share
                 </label>
@@ -487,7 +518,7 @@ export default async function SettingsPage({
                   className="input"
                   defaultValue={storage.warnPercent}
                 />
-                <span className="hint">Visual warning only; the email fires when someone is over 100%.</span>
+                <span className="hint">Visual warning only; the email fires when someone is over 100% of the fair share.</span>
               </div>
               <div className="field">
                 <label className="check">

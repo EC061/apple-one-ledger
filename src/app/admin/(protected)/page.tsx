@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { addMonths, formatDate, formatDateTime, formatMoney, relativeDays, today } from "@/lib/dates";
+import { formatDate, formatDateTime, formatMoney, relativeDays, today } from "@/lib/dates";
 import { seatCapacity, seatsUsed } from "@/lib/auth";
 import { latestStoredRate } from "@/lib/fx";
 import { removalCandidates } from "@/lib/reminders";
@@ -247,7 +247,7 @@ export default async function AdminOverviewPage({
             <div>
               <h2>Storage pool</h2>
               <span className="muted small">
-                {storage.totalGb} GB shared · {storage.quotaGb.toFixed(0)} GB per seat ({settings.plan.seats}-way split)
+                {storage.totalGb} GB shared · {storage.quotaGb.toFixed(0)} GB per seat ({settings.storage.shareCount}-way split)
               </span>
             </div>
             <span className={`badge ${storage.people > 0 && storage.percent > 100 ? "badge-overdue" : "badge-paid"}`}>
@@ -263,7 +263,9 @@ export default async function AdminOverviewPage({
             </div>
             <div className="row-between small muted" style={{ marginBottom: 8 }}>
               <span>{storage.percent.toFixed(1)}% of the family pool</span>
-              <span>{storage.people} active people</span>
+              <span>
+                {storage.people} active people · {storage.reported} reported
+              </span>
             </div>
 
             {storageUsers.map((member) => {
@@ -274,8 +276,9 @@ export default async function AdminOverviewPage({
                     <strong>{member.name}</strong> <span className="muted">{member.email}</span>
                   </div>
                   <div className="small strong">
-                    {state.usedGb.toFixed(1)} / {state.quotaGb.toFixed(0)} GB{" "}
+                    {state.reported ? `${state.usedGb.toFixed(1)} / ${state.quotaGb.toFixed(0)} GB` : "not reported"}{" "}
                     {state.over ? <span className="badge badge-overdue">over</span> : null}
+                    {state.stale && state.reported ? <span className="badge badge-warn">stale</span> : null}
                   </div>
                   <div className="meter">
                     <span

@@ -13,7 +13,7 @@ import {
 } from "@/app/actions/admin";
 import { Empty, MethodBadge, Notice, StatusBadge } from "@/components/ui";
 import SubmitButton from "@/components/SubmitButton";
-import type { Invoice, InvoiceStatus, PaymentMethod, Plan } from "@/lib/types";
+import type { Invoice, PaymentMethod, Plan } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 

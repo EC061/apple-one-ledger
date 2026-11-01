@@ -73,7 +73,7 @@ export async function sendMail(input: {
       .prepare(
         "INSERT INTO emails (id, to_addr, subject, kind, status, error, dedupe_key, created_at) VALUES (?, ?, ?, ?, 'skipped', ?, ?, ?)",
       )
-      .run(id, input.to, input.subject, input.kind, "SMTP not configured", input.dedupeKey ?? null, createdAt);
+      .run(id, input.to, input.subject, input.kind, "SMTP not configured", null, createdAt);
     return { ok: false, status: "skipped", error: "SMTP not configured" };
   }
 
@@ -98,7 +98,7 @@ export async function sendMail(input: {
       .prepare(
         "INSERT INTO emails (id, to_addr, subject, kind, status, error, dedupe_key, created_at) VALUES (?, ?, ?, ?, 'failed', ?, ?, ?)",
       )
-      .run(id, input.to, input.subject, input.kind, message, input.dedupeKey ?? null, createdAt);
+      .run(id, input.to, input.subject, input.kind, message, null, createdAt);
     return { ok: false, status: "failed", error: message };
   }
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { loginAction } from "@/app/actions/auth";
-import { Brand, Notice } from "@/components/ui";
+import { Notice } from "@/components/ui";
 import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";

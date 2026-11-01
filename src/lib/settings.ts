@@ -51,7 +51,11 @@ export interface ReminderSettings {
 export interface StorageSettings {
   enabled: boolean;
   totalGb: number;
+  /** People actually sharing the Apple family pool (may differ from billing seats). */
+  shareCount: number;
   warnPercent: number;
+  /** Stop alerting on readings older than this. */
+  maxAgeDays: number;
   notifyMember: boolean;
   notifyAdmin: boolean;
 }
@@ -144,7 +148,9 @@ export const DEFAULT_SETTINGS: Settings = {
   storage: {
     enabled: true,
     totalGb: 2000,
+    shareCount: 6,
     warnPercent: 90,
+    maxAgeDays: 45,
     notifyMember: true,
     notifyAdmin: true,
   },

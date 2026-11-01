@@ -20,7 +20,7 @@ Next.js 15 (standalone) · SQLite in WAL mode · Docker · GHCR · MIT.
 | Payments | WeChat Pay, Alipay, Venmo, Zelle. Member reports the payment, admin confirms — or automatic matching confirms it. |
 | CNY | Each invoice locks the USD→CNY rate on its issue date. |
 | Reminders | Email before due, while overdue, and before removal. Optional daily admin digest. |
-| Storage | Per-member GB against the shared 2 TB pool; member + admin alerts when someone exceeds 1/6. |
+| Storage | Per-member GB against the shared 2 TB pool; fair-share alerts to member + admin, with staleness handling. |
 | Admin | Who paid, when, how; outstanding and overdue totals; seat and storage usage; email log; settings. |
 
 There is deliberately **one family**. Multi-tenant management is out of scope.
@@ -205,15 +205,22 @@ Responses: `200 { status: paid | review | duplicate }`, `404` unknown reference,
 
 ## Storage tracking (2 TB ÷ 6)
 
-Each seat has a share of the pool: `totalGb / seats` (2000 ÷ 6 ≈ 333 GB). The member dashboard,
-admin overview and member table show usage and a progress bar. When usage exceeds the share,
-the member gets an email and the admin gets a summary — at most one member email per week and
-one admin summary per day.
+Each seat has a **fair share** of the pool: `totalGb / shareCount` (2000 ÷ 6 ≈ 333 GB).
+The member dashboard, admin overview and member table show usage and a progress bar. When usage
+is above the share, the member gets an email and the admin gets a summary — at most one member
+email per ISO week and one admin summary per day. Readings older than `maxAgeDays` (default 45)
+are shown as stale and never trigger email.
 
-**Can it be fully automatic?** Not from Apple. iCloud+ family storage is visible to the
-organizer only on-device (Settings → Family → iCloud+ / Storage), and Apple publishes no API
-for it. Screen-scraping iCloud.com is fragile, violates Apple’s terms, and breaks under 2FA.
-Therefore usage is **reported**, through either:
+> This is a fair-share guideline, not a hard cap. Apple does not partition the pool; one member
+> using 500 GB simply leaves less for everyone else and blocks nobody.
+
+`shareCount` is separate from billing seats: if the admin is only collecting money and is not in
+the Apple family, set it to 5 so the other members keep their real share.
+
+**Can it be fully automatic?** Not from Apple. Family iCloud+ usage is visible to the organizer
+in Settings → Family → iCloud+ and on iCloud.com, but there is no public API, and scraping
+requires the organizer's password plus 2FA (and iCloud's terms forbid automated access). So
+usage is **reported**, through either:
 
 - **Admin → Members** → the `GB` field on each member row (manual, takes 20 seconds), or
 - `POST /api/storage/update`:
@@ -225,10 +232,10 @@ curl -X POST https://plan.example.com/api/storage/update \
   -d '{ "email": "sam@example.com", "usedGb": 342.5 }'
 ```
 
-A monthly manual check, or a small script that drives the organizer’s device, is the realistic
-level of automation. This is by design, not a missing feature.
-
----
+The endpoint rejects values above the whole pool (a common bytes-vs-GB typo), records every
+reading in `storage_readings` for auditing, and returns the quota and percentage. A monthly
+manual check, or a small script that reads the organizer's screen, is the realistic level of
+automation. That is a deliberate product decision, not a missing feature.
 
 ## Email
 

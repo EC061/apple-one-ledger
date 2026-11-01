@@ -26,16 +26,21 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     DATA_DIR=/data
 
-RUN groupadd --system --gid 1001 nodejs \
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends gosu \
+ && rm -rf /var/lib/apt/lists/* \
+ && groupadd --system --gid 1001 nodejs \
  && useradd --system --uid 1001 --gid nodejs --create-home nextjs \
  && mkdir -p /data \
  && chown nextjs:nodejs /data
 
 COPY --from=builder /app/public ./public
+COPY --chmod=755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-USER nextjs
+# Starts as root only to fix /data ownership, then drops to `nextjs`.
+ENTRYPOINT ["docker-entrypoint.sh"]
 EXPOSE 3000
 VOLUME ["/data"]
 

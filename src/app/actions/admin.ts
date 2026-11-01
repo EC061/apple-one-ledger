@@ -31,7 +31,7 @@ import {
   smtpConfigured,
 } from "@/lib/email";
 import { runDailyJobs, sendAdminDigest } from "@/lib/reminders";
-import { updateStorage } from "@/lib/storage";
+import { StorageError, updateStorage } from "@/lib/storage";
 import { getBaseUrl } from "@/lib/url";
 import { setAccessCodeFlash } from "@/lib/flash";
 import { addDays, today } from "@/lib/dates";
@@ -160,7 +160,9 @@ export async function saveSettingsAction(formData: FormData) {
     saveSection("storage", {
       enabled: flag(formData, "enabled"),
       totalGb: Math.max(number(formData, "totalGb", current.storage.totalGb), 1),
+      shareCount: Math.round(clamp(number(formData, "shareCount", current.storage.shareCount), 1, 12)),
       warnPercent: clamp(number(formData, "warnPercent", 90), 50, 100),
+      maxAgeDays: Math.round(clamp(number(formData, "maxAgeDays", current.storage.maxAgeDays), 7, 365)),
       notifyMember: flag(formData, "notifyMember"),
       notifyAdmin: flag(formData, "notifyAdmin"),
     });
@@ -353,7 +355,11 @@ export async function updateMemberStorageAction(formData: FormData) {
   const userId = text(formData, "userId");
   const usedGb = number(formData, "usedGb", -1);
   if (usedGb < 0) redirect("/admin/members?error=storage");
-  updateStorage(userId, usedGb, "admin");
+  try {
+    updateStorage(userId, usedGb, "admin", "admin");
+  } catch (error) {
+    redirect(`/admin/members?error=${encodeURIComponent((error as Error).message)}`);
+  }
   revalidatePath("/admin/members");
   revalidatePath("/admin");
   redirect("/admin/members?saved=storage");
@@ -363,6 +369,10 @@ export async function setMemberStatusAction(formData: FormData) {
   await requireAdmin();
   const userId = text(formData, "userId");
   const status = text(formData, "status") === "removed" ? "removed" : "active";
+
+  const target = db().prepare("SELECT role FROM users WHERE id = ?").get(userId) as { role: string } | undefined;
+  if (!target) redirect("/admin/members?error=missing");
+  if (target.role === "admin") redirect("/admin/members?error=admin");
 
   if (status === "removed") {
     db()

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { formatDate, formatDateTime, formatMoney, relativeDays, today } from "@/lib/dates";
+import { formatDate, formatDateTime, formatMoney, relativeDays } from "@/lib/dates";
 import { PLANS } from "@/lib/pricing";
 import TopBar from "@/components/TopBar";
 import PaymentForm from "@/components/PaymentForm";

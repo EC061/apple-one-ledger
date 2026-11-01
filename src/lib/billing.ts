@@ -216,6 +216,27 @@ export function submitInvoice(
         "UPDATE invoices SET status = 'submitted', submitted_at = ?, method = ?, payer_note = ? WHERE id = ?",
       )
       .run(nowIso(), input.method, input.note ?? null, invoice.id);
+
+    const amountUsd =
+      input.currency === "CNY" ? Math.round((input.amount / (invoice.fx_rate || 1)) * 100) / 100 : input.amount;
+    db()
+      .prepare(
+        `INSERT INTO payments (id, invoice_id, method, currency, amount, amount_usd, fx_rate, fx_date, tx_ref, source, raw, status, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', NULL, 'pending', ?)`,
+      )
+      .run(
+        newId(),
+        invoice.id,
+        input.method,
+        input.currency,
+        input.amount,
+        amountUsd,
+        invoice.fx_rate,
+        invoice.fx_date,
+        input.txRef?.trim() || null,
+        nowIso(),
+      );
+
     event(actor, "invoice.submitted", {
       invoiceId: invoice.id,
       amount: input.amount,
