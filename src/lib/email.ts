@@ -332,6 +332,7 @@ export async function sendDigestEmail(input: {
   admin: User;
   baseUrl: string;
   rows: { name: string; email: string; status: string; amount: number; due: string; invoiceId: string }[];
+  removals: { name: string; email: string; due: string }[];
   collected: number;
   outstanding: number;
   seatsUsed: number;
@@ -347,6 +348,9 @@ export async function sendDigestEmail(input: {
     ...input.rows.map(
       (r) => `${r.name} <${r.email}> — ${r.status} — ${formatMoney(r.amount)} — due ${r.due}`,
     ),
+    ...(input.removals.length
+      ? ["", "Past grace — remove or contact:", ...input.removals.map((r) => `${r.name} <${r.email}> — due ${r.due}`)]
+      : []),
     ``,
     `${input.baseUrl}/admin`,
   ].join("\n");
@@ -375,6 +379,21 @@ export async function sendDigestEmail(input: {
               .join("")}
           </table>`
         : p("Everyone is paid up.")) +
+      (input.removals.length
+        ? `<h2 style="margin:22px 0 8px;font-size:16px;">Past grace — remove or contact</h2>
+           <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:13px;border-collapse:collapse;">
+             <tr style="text-align:left;color:#6b7c74;">
+               <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;">Member</th>
+               <th style="padding:6px 4px;border-bottom:1px solid #eef2f0;text-align:right;">Due</th>
+             </tr>
+             ${input.removals
+               .map(
+                 (r) =>
+                   `<tr><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;">${esc(r.name)}<br><span style="color:#6b7c74;font-size:12px;">${esc(r.email)}</span></td><td style="padding:7px 4px;border-bottom:1px solid #f4f7f5;text-align:right;color:#b42318;">${formatDate(r.due)}</td></tr>`,
+               )
+               .join("")}
+           </table>`
+        : "") +
       button(`${input.baseUrl}/admin`, "Open admin"),
     "Manage reminder settings in Admin → Settings.",
   );
