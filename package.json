@@ -15,7 +15,7 @@
     "node": ">=22.13"
   },
   "dependencies": {
-    "next": "^16.4.3",
+    "next": "^16.4.5",
     "nodemailer": "^10.3.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
